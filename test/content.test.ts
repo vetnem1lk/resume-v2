@@ -13,7 +13,7 @@ const flat = (c: unknown) => JSON.stringify(c);
 describe.each(both)('content $lang', (c) => {
   test('no em-dash anywhere', () => { expect(flat(c)).not.toMatch(/\u2014/); });
   test('no phone number, no hh, no salary', () => {
-    expect(flat(c)).not.toMatch(/950-73-77|\+7 ?913|hh\.ru|salary|зарплат/i);
+    expect(flat(c)).not.toMatch(/\+7[ (-]*9\d{2}[ )-]*\d{3}[ -]*\d{2}[ -]*\d{2}|hh\.ru|salary|зарплат/i);
   });
   test('no percentage in the Sed-Pro entry', () => { expect(flat(c.jobs[0])).not.toMatch(/%/); });
   test('eight sections labelled', () => {

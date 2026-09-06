@@ -51,7 +51,7 @@ describe.each([en, ru])('render $lang', (c) => {
   });
   test('no em-dash, no phone', () => {
     expect(body + head).not.toMatch(/\u2014/);
-    expect(body + head).not.toMatch(/950-73-77/);
+    expect(body + head).not.toMatch(/\+7[ (-]*9\d{2}[ )-]*\d{3}[ -]*\d{2}[ -]*\d{2}/);
   });
   test('head: title, description, canonical, three hreflang alternates, og', () => {
     expect(head).toContain(`<title>${c.meta.title}</title>`);
