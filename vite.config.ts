@@ -3,10 +3,13 @@
 // base64-inlined, no modulepreload polyfill (nothing is imported dynamically).
 import { resolve } from 'node:path';
 import { defineConfig } from 'vitest/config';
+import { resumePages } from './src/build/pages.ts';
 
 const root = import.meta.dirname;
 
 export default defineConfig({
+  // Fills index.html and ru/index.html from src/content, in dev and in build.
+  plugins: [resumePages()],
   // Vite 8: the top-level `input` feeds dev, build and optimizeDeps; build.rollupOptions
   // is deprecated. Keys are ignored for HTML; the path relative to root decides the
   // output, so this yields dist/index.html and dist/ru/index.html.
