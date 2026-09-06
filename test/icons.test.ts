@@ -3,7 +3,9 @@
 // fails here instead of rendering a broken glyph.
 import { createHash } from 'node:crypto';
 import { expect, test } from 'vitest';
+import { en } from '../src/content/en.ts';
 import { ICONS, renderSprite } from '../src/dom/icons.ts';
+import { renderBody } from '../src/dom/render.ts';
 
 const PINS: Record<keyof typeof ICONS, [number, string]> = {
   vk: [1172, '07ccd40f1c97262c'],
@@ -25,4 +27,13 @@ test('sprite: six symbols, hidden, no fill-rule', () => {
   expect(sprite.match(/<symbol /g)).toHaveLength(6);
   expect(sprite).toContain('aria-hidden="true"');
   expect(sprite).not.toMatch(/fill-rule/);
+});
+
+// The <use> ids are typed (IconId), but a symbol could still be dropped from the sprite
+// while a reference to it survives; an unresolved <use> renders an empty 20x20 box.
+test('every <use> in the body resolves to a sprite symbol', () => {
+  const ids = [...renderBody(en).matchAll(/href="#i-([\w-]+)"/g)].map((m) => m[1]);
+  const symbols = [...renderSprite().matchAll(/id="i-([\w-]+)"/g)].map((m) => m[1]);
+  expect(ids.length).toBeGreaterThan(0);
+  expect([...new Set(ids)].filter((id) => !symbols.includes(id))).toEqual([]);
 });

@@ -4,6 +4,7 @@
 import { CV_FILES, ORIGIN, PROFILES } from '../content/shared.ts';
 import type { Achievement, Content, Job, Link, Project, SectionId } from '../content/types.ts';
 import { SECTION_IDS } from '../content/types.ts';
+import type { IconId } from './icons.ts';
 import { renderSprite } from './icons.ts';
 
 export function escape(s: string): string {
@@ -33,7 +34,7 @@ export function renderHead(c: Content): string {
   ].join('\n    ');
 }
 
-const icon = (id: string) => `<svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-${id}"></use></svg>`;
+const icon = (id: IconId) => `<svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-${id}"></use></svg>`;
 const link = (l: Link) => `<a href="${e(l.href)}">${e(l.label)}</a>`;
 const visualCv = (c: Content) => CV_FILES.find((f) => f.key === c.lang)!;
 
