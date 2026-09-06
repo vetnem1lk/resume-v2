@@ -4,7 +4,7 @@ Scroll-driven 3D resume of **Vladislav Klimentev** - C++/Qt developer moving int
 development (tools / gameplay track). The resume itself is plain HTML that works with
 JavaScript disabled; the 3D scene on top of it is a progressive enhancement.
 
-> Status: repository initialised, first slice (the zero-JS resume) in progress.
+> Status: first slice shipped: the zero-JS resume.
 >
 > Previous site, still live: https://me.cryzothic.tech
 
@@ -33,6 +33,16 @@ JavaScript disabled; the 3D scene on top of it is a progressive enhancement.
 - LCP element is the heading or the poster, never the canvas; CLS < 0.05; INP < 200 ms
 - Lighthouse >= 95 in every category for the document with JavaScript disabled
 - `prefers-reduced-motion` respected: no camera motion, no autoplay
+
+### Measured today
+
+| entry JS | entry CSS | document |
+| -------- | --------- | -------- |
+| 437 B    | 3 674 B   | 5 581 B  |
+
+Every number is gzip level 9 over the built file (`zlib.gzipSync(buf, { level: 9 }).length`),
+never the build log's column; `budget.json` carries each one rounded up to the next kibibyte
+above measured + 15 %, and `npm run gate` fails the build the moment a number passes it.
 
 ## Repository map
 
