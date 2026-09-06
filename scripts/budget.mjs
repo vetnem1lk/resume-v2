@@ -1,7 +1,8 @@
 // Byte gates over dist/. Measures gz9 (zlib level 9, the number the README quotes,
 // not the build log's column) for the entry assets referenced by dist/index.html,
 // proves the entry contains no three.js, that no font was base64-inlined into the
-// stylesheet, and that the Russian document was emitted. Exit code = failures.
+// stylesheet, that the Russian document was emitted, and that both documents carry the
+// recruiter gate's four elements in markup. Exit code = failures.
 import { existsSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
@@ -49,6 +50,22 @@ check('ru document emitted', ruHtml.includes('<html lang="ru"'));
 // The em-dash is banned in the shipped bytes (plan gate); the en dash stays, it is the
 // separator the plan mandates for date ranges.
 check('no em-dash in either document', !/—/.test(html + ruHtml));
+
+// Recruiter gate (design doc, section 5): "name, role, one proof, CV button in index.html
+// with JS off; PDF in one click". All four are markup the build emits, and nojs.mjs
+// removes scripts only, so what passes here is what a visitor with JS off gets.
+const RECRUITER = [
+  // [^<] so an empty element does not pass on its own closing tag; the proof needs a
+  // sentence, not a word, hence the 80 characters of uninterrupted text.
+  ['name', /<h1[^>]*>\s*[^<\s]/],
+  ['role', /class="role"[^>]*>\s*[^<\s]/],
+  ['proof', /<p class="profile">[^<]{80}/],
+  ['one-click CV', /<a class="cv-button" href="\/cv\/[^"]+\.pdf" download>/],
+];
+for (const [doc, src] of [['index.html', html], ['ru/index.html', ruHtml]]) {
+  const missing = RECRUITER.filter(([, re]) => !re.test(src)).map(([label]) => label);
+  check(`recruiter gate in ${doc}`, missing.length === 0, missing.length ? `missing ${missing.join(', ')}` : 'name, role, proof, one-click CV');
+}
 
 console.log(failures ? `\n${failures} failed` : '\nall ok');
 process.exitCode = failures;

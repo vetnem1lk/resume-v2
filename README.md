@@ -74,7 +74,7 @@ resume-v2/
     styles/doc.css           # layout, typography, stage (letterform / contour / light strip / poster), pills, print
   scripts/
     precompress.mjs          # brotli sidecars for every compressible file in dist/
-    budget.mjs               # gz9 gates over dist/, entry purity, no inlined fonts, RU document present
+    budget.mjs               # gz9 gates over dist/, entry purity, no inlined fonts, RU document, recruiter gate
     smoke.mjs                # every reachable URL answers with the right type
     nojs.mjs                 # writes dist-nojs/ = dist/ with every <script> removed (the Lighthouse "JS disabled" target)
   test/
@@ -85,7 +85,8 @@ resume-v2/
 
 - `npm test` - unit tests (content invariants, render contract, PDF bytes, nav helper)
 - `npm run lint` / `npm run typecheck`
-- `npm run build` then `npm run gate` - gz9 byte budget from `budget.json`, entry purity, both documents present
+- `npm run build` then `npm run gate` - gz9 byte budget from `budget.json`, entry purity, both documents present,
+  and the recruiter gate in markup: name, role, one proof and a one-click CV button in each document
 - `npm run nojs` then `npx vite preview --outDir dist-nojs` - the document with every script removed, the target of the Lighthouse >= 95 audit
 - `npm run smoke -- http://localhost:4173 --local` - every reachable URL answers with the right type
 
