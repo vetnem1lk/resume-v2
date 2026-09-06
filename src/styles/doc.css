@@ -280,9 +280,11 @@ a {
     height: auto;
   }
 
+  /* Rotated, so the element's width is the mark's visual height: 43vw reads as ~73 %
+     of the stage, the proportion the founder reference holds. */
   .stage__letterform {
     left: 0;
-    width: 34vw;
+    width: 43vw;
     transform: translateY(-50%) rotate(-90deg);
   }
 }
@@ -428,10 +430,13 @@ h1 {
   letter-spacing: .14em;
 }
 
+/* One max-content column: four mono lines that align at every width. A wrapping row
+   broke into ragged 2x2 and 3-line shapes in the page's highest-attention area. */
 .meta {
-  display: flex;
-  flex-wrap: wrap;
-  gap: .375rem 1.5rem;
+  display: grid;
+  grid-template-columns: max-content;
+  justify-content: start;
+  gap: .375rem;
   margin-top: 1.75rem;
   color: var(--dim);
   font: 400 .8125rem/1.4 var(--font-mono);
@@ -638,14 +643,14 @@ h1 {
   letter-spacing: -0.01em;
 }
 
+/* The row, not the summary, is the CV panel's containing block (see .cv-menu > ul). */
 .card__icons {
+  position: relative;
   display: flex;
   flex-wrap: wrap;
   gap: 0 1.5rem;
   margin-top: .5rem;
 }
-
-.cv-menu { position: relative; }
 
 /* All three rules are needed; Safari honours only the last one. */
 .cv-menu summary {
@@ -657,12 +662,15 @@ h1 {
 .cv-menu summary::marker { content: none; }
 .cv-menu summary::-webkit-details-marker { display: none; }
 
+/* Anchored to the right edge of the card, not to the summary: from there the panel grows
+   leftwards, so it fits the longest label on one line and still clears the pill rail. */
 .cv-menu > ul {
   position: absolute;
+  right: -.5rem;
   bottom: calc(100% + .5rem);
-  left: -.5rem;
   z-index: 5;
-  width: min(15rem, calc(100vw - 2.5rem));
+  width: max-content;
+  max-width: calc(100vw - 3rem);
   padding: .25rem;
   background: var(--paper);
   border: 1px solid var(--rule);

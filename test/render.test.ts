@@ -49,8 +49,8 @@ describe.each([en, ru])('render $lang', (c) => {
       expect(text.length > 0 || /aria-label="[^"]+"/.test(m[1])).toBe(true);
     }
   });
-  test('no em-dash, no phone', () => {
-    expect(body + head).not.toMatch(/\u2014/);
+  test('no em-dash, no en-dash, no phone', () => {
+    expect(body + head).not.toMatch(/[\u2013\u2014]/);
     expect(body + head).not.toMatch(/950-73-77/);
   });
   test('head: title, description, canonical, three hreflang alternates, og', () => {

@@ -11,7 +11,8 @@ const both = [en, ru];
 const flat = (c: unknown) => JSON.stringify(c);
 
 describe.each(both)('content $lang', (c) => {
-  test('no em-dash anywhere', () => { expect(flat(c)).not.toMatch(/\u2014/); });
+  // Both long dashes: the en dash is banned as a separator too, date ranges use a hyphen.
+  test('no em-dash or en-dash anywhere', () => { expect(flat(c)).not.toMatch(/[\u2013\u2014]/); });
   test('no phone number, no hh, no salary', () => {
     expect(flat(c)).not.toMatch(/950-73-77|\+7 ?913|hh\.ru|salary|зарплат/i);
   });
