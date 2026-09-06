@@ -1,0 +1,23 @@
+# Dependencies and build output
+node_modules/
+dist/
+*.tsbuildinfo
+
+# 3D assets never enter this public repo (licensed content is served out of repo)
+*.glb
+*.gltf
+*.ktx2
+*.fbx
+*.blend
+*.blend1
+
+# Local agent notes and run state
+CLAUDE.md
+.superpowers/
+graphify-out/
+gate-shots/
+
+# Environment and logs
+.env
+.env.*
+*.log
