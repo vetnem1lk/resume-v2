@@ -206,13 +206,18 @@ a {
    document on wide screens, a full-height poster in flow on narrow ones, where it
    follows the header block so the name, role and meta hold the first screen. In flow it
    is a child of .doc, hence the negative inline margin: the poster is full-bleed, the
-   text column is not. svh, never dvh: dvh re-resolves on every scroll tick and the
+   text column is not. z-index is -1, not 0, because .doc is a stacking context
+   (position: relative; z-index: 1): a positioned child at 0 paints above .doc's in-flow
+   text, which the fixed stage would then cover from S2 on. A negative child paints after
+   .doc's (transparent) background and before its content, i.e. behind the text column;
+   in flow nothing overlaps the poster, so it stays visible there too.
+   svh, never dvh: dvh re-resolves on every scroll tick and the
    reserved box would breathe. */
 .stage {
   --strip-x: 50%;
 
   position: relative;
-  z-index: 0;
+  z-index: -1;
   height: calc(100svh - var(--strip-h));
   margin: 0 -1.25rem;
   overflow: hidden;
