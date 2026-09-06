@@ -1,7 +1,7 @@
 /* The resume document: one light theme, four neutrals and a single oxide accent
    (tokens.css), a paper text column set over a fixed scene layer. Mobile first;
    1024px is the only layout breakpoint, below which the scene becomes a poster in
-   flow above the document. Corners are square everywhere, on purpose. */
+   flow, under the header block. Corners are square everywhere, on purpose. */
 @import './tokens.css';
 
 /* 1. Reset and base ------------------------------------------------------------- */
@@ -203,14 +203,18 @@ a {
 /* 3. Stage ---------------------------------------------------------------------- */
 /* Decoration only (aria-hidden in the markup): the hatched letterform, the contour
    field, the light strip and the box the scene occupies from S2 on. Fixed behind the
-   document on wide screens, a full-height poster in flow on narrow ones. svh, never
-   dvh: dvh re-resolves on every scroll tick and the reserved box would breathe. */
+   document on wide screens, a full-height poster in flow on narrow ones, where it
+   follows the header block so the name, role and meta hold the first screen. In flow it
+   is a child of .doc, hence the negative inline margin: the poster is full-bleed, the
+   text column is not. svh, never dvh: dvh re-resolves on every scroll tick and the
+   reserved box would breathe. */
 .stage {
   --strip-x: 50%;
 
   position: relative;
   z-index: 0;
   height: calc(100svh - var(--strip-h));
+  margin: 0 -1.25rem;
   overflow: hidden;
   pointer-events: none;
 }
@@ -235,11 +239,7 @@ a {
   transform: translate(-50%, -50%);
 }
 
-.stage__letterform text {
-  fill: url(#hatch-vk);
-  font: 900 560px/1 var(--font-display);
-  letter-spacing: -0.04em;
-}
+.stage__letterform path { fill: url(#hatch-vk); }
 
 /* The page's only gradient. Blurred, so it reads as light falling through the scene
    rather than as a coloured bar. */
@@ -278,6 +278,7 @@ a {
     position: fixed;
     inset: var(--strip-h) 0 0 0;
     height: auto;
+    margin: 0;
   }
 
   /* Rotated, so the element's width is the mark's visual height: 43vw reads as ~73 %

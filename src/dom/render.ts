@@ -53,17 +53,27 @@ function strip(c: Content): string {
 
 // The scene layer. Static in S1: the letterform, the contour field, the light strip and
 // the reserved poster box the character will later occupy. aria-hidden: pure decoration.
+// It sits after the header block inside <main>, not before it: on a phone it is a poster
+// in flow, and ahead of the document it filled the whole first screen with decoration,
+// leaving the name and role to the strip alone. Fixed on wide screens, where document
+// order does not reach the layout.
 // Paint (fill, stroke, colour) is applied from doc.css: var() inside an SVG presentation
 // attribute is not guaranteed to resolve, CSS rules are, and CSS beats the attribute.
-// The letterform viewBox is the measured ink box of "VK" at 900/560px in the display
-// face (canvas TextMetrics plus the -0.04em tracking), so the CSS width is the glyph
-// itself and not a box padded with the font's ascent. The hatch period is in user units,
-// so it scales with the element: 10 keeps the on-screen pitch under 8px at the desktop
-// width, where the stripes fill the mark instead of competing with its silhouette.
+// The letterform is an outline, not live <text>: Chrome records SVG text as a
+// largest-contentful-paint candidate even inside a <mask> or a <clipPath> (measured), so
+// as <text> this aria-hidden watermark took the LCP the spec pins to the H1, and the
+// page's largest paint waited on the display face. As a <path> it is not a candidate,
+// and the mark no longer changes shape when Onest swaps in. The d is the ink box of "VK"
+// set at 900/560px with the -0.04em tracking, outlined from the bundled
+// @fontsource-variable/onest 5.3.0 latin file (OFL) with fontkit, origin at the ink box's
+// top-left, which is why the viewBox is exactly the glyph and not a box padded with the
+// font's ascent. The hatch period is in user units, so it scales with the element: 10
+// keeps the on-screen pitch under 8px at the desktop width, where the stripes fill the
+// mark instead of competing with its silhouette.
 function stage(): string {
   return `<div class="stage" aria-hidden="true">
   <svg class="stage__contour" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice"><filter id="contour" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.0022" numOctaves="3" seed="13" /><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 9 -4" /><feComponentTransfer><feFuncA type="discrete" tableValues="0 1 0 1 0 1 0 1 0 1 0 1 0 1 0" /></feComponentTransfer><feMorphology operator="erode" radius="0.6" /></filter><rect width="1600" height="900" filter="url(#contour)" /></svg>
-  <svg class="stage__letterform" viewBox="119 157 784 404"><defs><pattern id="hatch-vk" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="4" fill="currentColor" /></pattern></defs><text x="500" y="560" text-anchor="middle">VK</text></svg>
+  <svg class="stage__letterform" viewBox="0 -396.5 784 396.5"><defs><pattern id="hatch-vk" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="4" fill="currentColor" /></pattern></defs><path d="M142.24 0L0 -396.48L110.32 -396.48L208.32 -85.12L302.4 -396.48L412.16 -396.48L271.04 0ZM427.28 0L427.28 -396.48L528.64 -396.48L528.64 -244.16L582.96 -244.16L668.64 -396.48L784 -396.48L666.4 -206.64L782.88 0L665.28 0L585.2 -150.64L528.64 -150.64L528.64 0Z" /></svg>
   <div class="stage__light"></div>
   <div class="stage__poster"></div>
 </div>`;
@@ -124,10 +134,10 @@ export function renderBody(c: Content): string {
   return `${renderSprite()}
 <a class="skip" href="#profile">${e(c.ui.skip)}</a>
 ${strip(c)}
-${stage()}
 ${pills(c)}
 <main class="doc">
 ${header(c)}
+${stage()}
 ${block('profile', c, `<p class="profile">${e(c.profile)}</p>`)}
 ${block('projects', c, `${c.projects.map(project).join('')}<p class="more">${e(c.projectsMore.text)} → ${link(c.projectsMore.link)}</p>`)}
 ${block('experience', c, c.jobs.map(job).join(''))}
