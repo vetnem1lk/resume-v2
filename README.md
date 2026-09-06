@@ -38,12 +38,46 @@ JavaScript disabled; the 3D scene on top of it is a progressive enhancement.
 
 ```
 resume-v2/
-├── index.html        # the resume as static markup (filled in by the first slice)
-├── src/              # document logic, scene island (added slice by slice)
-├── scripts/          # build helpers: brotli sidecars, deploy smoke
-├── test/             # vitest unit tests
-└── README.md
+  index.html                 # page shell (EN); the resume body is rendered into it by src/build/pages.ts
+  ru/index.html              # identical shell; the plugin keys the language off the path (test pins identity)
+  package.json               # scripts: dev, build, preview, test, lint, typecheck, gate, smoke
+  package-lock.json
+  tsconfig.json              # one project: src, test, vite.config.ts
+  vite.config.ts             # plugin registration, MPA input, assetsInlineLimit, vitest include
+  .oxlintrc.json
+  budget.json                # gz9 byte gates read by scripts/budget.mjs
+  README.md                  # repository map + budget + gates
+  public/
+    cv/Klimentev_Vladislav_CPP_Developer_{EN,RU}{,_ATS}.pdf   # the four CV files, bytes pinned by a test
+    favicon.svg              # "VK" monogram in oxide on paper
+    robots.txt
+  src/
+    main.ts                  # progressive enhancement entry: ?lang= redirect, active pill
+    content/types.ts         # Content shape + SECTION_IDS
+    content/shared.ts        # language-independent facts: CV files + bytes, profile URLs, origin
+    content/en.ts  content/ru.ts
+    dom/render.ts            # Content -> { head, body } HTML strings, escaped
+    dom/icons.ts             # inline SVG sprite: vk, telegram, github, gmail (simple-icons), download (Phosphor)
+    dom/pills.ts             # IntersectionObserver -> aria-current on the anchor nav; pure helper mostVisible()
+    build/pages.ts           # Vite plugin resumePages(): fills the shells per language (dev + build)
+    styles/tokens.css        # design tokens, font imports, fallback-font metrics
+    styles/doc.css           # layout, typography, stage (letterform / contour / light strip / poster), pills, print
+  scripts/
+    precompress.mjs          # brotli sidecars for every compressible file in dist/
+    budget.mjs               # gz9 gates over dist/, entry purity, no inlined fonts, RU document present
+    smoke.mjs                # every reachable URL answers with the right type
+    nojs.mjs                 # writes dist-nojs/ = dist/ with every <script> removed (the Lighthouse "JS disabled" target)
+  test/
+    content.test.ts  render.test.ts  shell.test.ts  pdf.test.ts  icons.test.ts  pills.test.ts
 ```
+
+## Gates
+
+- `npm test` - unit tests (content invariants, render contract, PDF bytes, nav helper)
+- `npm run lint` / `npm run typecheck`
+- `npm run build` then `npm run gate` - gz9 byte budget from `budget.json`, entry purity, both documents present
+- `npm run nojs` then `npx vite preview --outDir dist-nojs` - the document with every script removed, the target of the Lighthouse >= 95 audit
+- `npm run smoke -- http://localhost:4173 --local` - every reachable URL answers with the right type
 
 ## 3D character
 

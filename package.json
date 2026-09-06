@@ -1,0 +1,28 @@
+{
+  "name": "resume.cryzothic.tech",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build && node scripts/precompress.mjs",
+    "preview": "vite preview --strictPort --port 4173",
+    "test": "vitest run",
+    "lint": "oxlint",
+    "typecheck": "tsc --noEmit",
+    "gate": "node scripts/budget.mjs",
+    "nojs": "node scripts/nojs.mjs",
+    "smoke": "node scripts/smoke.mjs"
+  },
+  "dependencies": {
+    "@fontsource-variable/jetbrains-mono": "5.3.0",
+    "@fontsource-variable/onest": "5.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.4.1",
+    "oxlint": "1.81.0",
+    "typescript": "6.0.3",
+    "vite": "8.2.2",
+    "vitest": "5.0.0"
+  }
+}

@@ -16,6 +16,9 @@ CLAUDE.md
 .superpowers/
 graphify-out/
 gate-shots/
+dist-nojs/
+lighthouse/
+.vitest/
 
 # Environment and logs
 .env
