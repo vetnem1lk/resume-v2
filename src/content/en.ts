@@ -1,6 +1,6 @@
 // English copy. Verbatim from the shipped CV (Resume/layout/resume-en.html) plus the
 // three fixes recorded in the design doc: co-authored paper, Sed-Pro sub-line, OOP chip.
-// Em-dashes of the CV are replaced structurally: ranges use a hyphen, "name: tagline"
+// Em-dashes of the CV are replaced structurally: ranges use an en dash, "name: tagline"
 // heads are two fields, prose dashes become colons, parentheses or semicolons.
 import type { Content } from './types.ts';
 
@@ -45,11 +45,11 @@ export const en: Content = {
     {
       company: 'Sed-Pro LLC',
       place: 'Barnaul',
-      when: 'Dec 2024 - present',
+      when: 'Dec 2024 – present',
       sub: "Software development for the design industry; the platform's main user is the architecture & engineering bureau Investproekt.",
       titles: [
-        { title: 'Lead Programmer', when: 'Aug 2025 - present', current: true },
-        { title: 'Programmer', when: 'Dec 2024 - Aug 2025', current: false },
+        { title: 'Lead Programmer', when: 'Aug 2025 – present', current: true },
+        { title: 'Programmer', when: 'Dec 2024 – Aug 2025', current: false },
       ],
       bullets: [
         'Own tech stack, scoping and deadlines; hands-on lead with 1 (2) engineers reporting to me.',
@@ -62,7 +62,7 @@ export const en: Content = {
     {
       company: 'Industrial automation plant (NDA)',
       place: '',
-      when: 'Feb - Mar 2024',
+      when: 'Feb – Mar 2024',
       sub: 'Fuel-station tanker systems · Software Engineering Intern',
       titles: [],
       bullets: [

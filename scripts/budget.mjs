@@ -46,8 +46,9 @@ const ru = `${dist}ru/index.html`;
 const ruHtml = existsSync(ru) ? readFileSync(ru, 'utf8') : '';
 check('ru document emitted', ruHtml.includes('<html lang="ru"'));
 
-// Long dashes are banned in the shipped bytes, the en dash as a separator included.
-check('no em-dash or en-dash in either document', !/[–—]/.test(html + ruHtml));
+// The em-dash is banned in the shipped bytes (plan gate); the en dash stays, it is the
+// separator the plan mandates for date ranges.
+check('no em-dash in either document', !/—/.test(html + ruHtml));
 
 console.log(failures ? `\n${failures} failed` : '\nall ok');
 process.exitCode = failures;
