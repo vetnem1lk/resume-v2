@@ -774,7 +774,11 @@ h1 {
   h1,
   h2 { break-after: avoid; }
 
-  .card a[href^='http']::after { content: ' (' attr(href) ')'; }
+  /* On paper the card's links are the only way to reach any of them, so the target is
+     printed after the label. mailto: is included or the address never reaches the page:
+     the strip is hidden in print and the phone is off the document by design (D14). */
+  .card a[href^='http']::after,
+  .card a[href^='mailto']::after { content: ' (' attr(href) ')'; }
 
   @page {
     size: A4;
