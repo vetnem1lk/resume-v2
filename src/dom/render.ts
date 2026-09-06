@@ -54,10 +54,13 @@ function strip(c: Content): string {
 // the reserved poster box the character will later occupy. aria-hidden: pure decoration.
 // Paint (fill, stroke, colour) is applied from doc.css: var() inside an SVG presentation
 // attribute is not guaranteed to resolve, CSS rules are, and CSS beats the attribute.
+// The letterform viewBox is the measured ink box of "VK" at 900/560px in the display
+// face (canvas TextMetrics plus the -0.04em tracking), so the CSS width is the glyph
+// itself and not a box padded with the font's ascent.
 function stage(): string {
   return `<div class="stage" aria-hidden="true">
   <svg class="stage__contour" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice"><filter id="contour" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.0022" numOctaves="3" seed="13" /><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 9 -4" /><feComponentTransfer><feFuncA type="discrete" tableValues="0 1 0 1 0 1 0 1 0 1 0 1 0 1 0" /></feComponentTransfer><feMorphology operator="erode" radius="0.6" /></filter><rect width="1600" height="900" filter="url(#contour)" /></svg>
-  <svg class="stage__letterform" viewBox="0 0 1000 620"><defs><pattern id="hatch-vk" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="14" height="6" fill="currentColor" /></pattern></defs><text x="500" y="560" text-anchor="middle">VK</text></svg>
+  <svg class="stage__letterform" viewBox="119 157 784 404"><defs><pattern id="hatch-vk" width="14" height="14" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="14" height="6" fill="currentColor" /></pattern></defs><text x="500" y="560" text-anchor="middle">VK</text></svg>
   <div class="stage__light"></div>
   <div class="stage__poster"></div>
 </div>`;
