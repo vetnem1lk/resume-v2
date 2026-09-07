@@ -54,6 +54,7 @@ resume-v2/
   package-lock.json
   tsconfig.json              # one project: src, test, scripts/pipeline, vite.config.ts
   vite.config.ts             # plugin registration, MPA input, assetsInlineLimit, vitest include
+  .gitignore                 # build output plus every licensed asset extension: no binary can be staged by accident
   .oxlintrc.json
   budget.json                # gz9 byte gates read by scripts/budget.mjs
   README.md                  # repository map + budget + gates
@@ -105,9 +106,11 @@ resume-v2/
     vram.test.ts             # the morph VRAM formula, pinned at and past the maxTextureSize wrap
     ktx.test.ts              # the encode recipes: sRGB colour, assigned-linear data, zstd only on UASTC
     glb.test.ts              # the byte-budget table: per mesh, per clip-second, decoded next to on-disk
+    fixtures/inventory-mini.json  # two hand-written FBX reports, a combine plus a module, the summary is pinned against
   tools/
-    face-proof.html          # bare three.js viewer: plays the proof GLB and asserts the morph weights move
-                             # (the GLB it loads lives in tools/assets/, gitignored with the rest of the asset)
+    face-proof.html          # bare three.js viewer: plays the proof GLB and asserts the morph weights move;
+                             # ?glb= opens any other export and falls back to its first clip when it has no
+                             # weights track (the GLBs live in tools/assets/, gitignored with the rest of the asset)
 ```
 
 ## Gates
