@@ -74,6 +74,7 @@ resume-v2/
     styles/doc.css           # layout, typography, stage (letterform / contour / light strip / poster), pills, print
     pipeline/inventory.ts    # Blender inventory JSON -> object rows, module-set totals, morph ranking, markdown
     pipeline/morphs.ts       # the ARKit-52 vocabulary and the keep-list tiers the morph budget is priced at
+    pipeline/vram.ts         # exact morph-texture VRAM: the RGBA32F row wrap the naive verts*slots*16*N misses
   scripts/
     precompress.mjs          # brotli sidecars for every compressible file in dist/
     budget.mjs               # gz9 gates over dist/, entry purity, no inlined fonts, RU document, recruiter gate
@@ -90,6 +91,7 @@ resume-v2/
     paths.test.ts            # path defaults and environment overrides
     repo.test.ts             # the guard: no licensed binary is ever tracked by git
     inventory.test.ts        # the inventory summary arithmetic and the morph keep-list tiers
+    vram.test.ts             # the morph VRAM formula, pinned at and past the maxTextureSize wrap
 ```
 
 ## Gates
