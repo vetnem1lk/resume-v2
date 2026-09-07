@@ -160,6 +160,10 @@ for clip in ["Idle", "Pose_01", "Pose_02", "Walk_Fwd", "Run_Fwd"]:
         assert R["clips"][clip]["amplitude"] > 1e-4, f"{clip}: static pose after bake"
 if arm.animation_data:
     arm.animation_data.action = None
+# One export covers every baked action, at whatever frame rate the last import left in the scene: a
+# clip authored at another rate would silently re-time all the others. The rates are already recorded.
+rates = {c["fps"] for c in R["clips"].values()} | {bpy.context.scene.render.fps}
+assert len(rates) == 1, f"clip frame rates disagree with each other or with the scene: {sorted(rates)}"
 clips_glb = os.path.join(out_dir, "clips_spec15.glb")
 bpy.ops.export_scene.gltf(filepath=clips_glb, export_animations=True, **GEO, **MESHOPT)
 R["clips_glb"] = describe(clips_glb)
