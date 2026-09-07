@@ -50,9 +50,9 @@ above measured + 15 %, and `npm run gate` fails the build the moment a number pa
 resume-v2/
   index.html                 # page shell (EN); the resume body is rendered into it by src/build/pages.ts
   ru/index.html              # identical shell; the plugin keys the language off the path (test pins identity)
-  package.json               # scripts: dev, build, preview, test, lint, typecheck, gate, smoke
+  package.json               # scripts: dev, build, preview, test, lint, typecheck, gate, smoke, pipeline:*
   package-lock.json
-  tsconfig.json              # one project: src, test, vite.config.ts
+  tsconfig.json              # one project: src, test, scripts/pipeline, vite.config.ts
   vite.config.ts             # plugin registration, MPA input, assetsInlineLimit, vitest include
   .oxlintrc.json
   budget.json                # gz9 byte gates read by scripts/budget.mjs
@@ -77,8 +77,13 @@ resume-v2/
     budget.mjs               # gz9 gates over dist/, entry purity, no inlined fonts, RU document, recruiter gate
     smoke.mjs                # every reachable URL answers with the right type
     nojs.mjs                 # writes dist-nojs/ = dist/ with every <script> removed (the Lighthouse "JS disabled" target)
+    pipeline/paths.ts        # tool and raw-data locations, every one overridable through the environment
+    pipeline/run-blender.ts  # one headless Blender job; hands back the job's S2_ sentinel line
+    pipeline/run-ue.ts       # one headless UE python job; trusts its S2_RESULT line and the files it wrote
   test/
     content.test.ts  render.test.ts  shell.test.ts  pdf.test.ts  icons.test.ts  pills.test.ts
+    paths.test.ts            # path defaults and environment overrides
+    repo.test.ts             # the guard: no licensed binary is ever tracked by git
 ```
 
 ## Gates
@@ -96,3 +101,15 @@ The character is the "Mechanic Girl" model by IdaFaber (licensed content). The s
 only an optimised runtime subset of it; the asset is not part of this repository and may not
 be extracted or reused outside this site. The asset pipeline (FBX to glTF optimisation,
 KTX2 textures, meshopt), the scroll choreography, the gaze rig and the loader are my own work.
+
+## Asset pipeline
+
+`scripts/pipeline/` turns the licensed FBX package into the optimised runtime subset. The
+scripts run outside the site build and never write into the repository: Blender 5.2 does the
+inventory, pruning and glTF export, Unreal Engine 5.8 exports textures and animation clips,
+KTX-Software encodes textures, gltf-transform accounts the bytes. Tool locations are read from
+the environment (`BLENDER`, `UE_CMD`, `UE_PROJECT`, `KTX`, `MG_RAW`, `GLTF_MODULES`), with
+defaults for standard installs. `npm run pipeline:inventory` measures the package;
+`pipeline:face-proof` proves that facial animation curves survive the whole chain into a
+`weights` track that three.js plays (`tools/face-proof.html`); `pipeline:textures` and
+`pipeline:clips` produce the byte budget the design decisions are made against.

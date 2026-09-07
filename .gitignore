@@ -24,3 +24,7 @@ lighthouse/
 .env
 .env.*
 *.log
+
+# Pipeline viewer assets and screenshots (licensed content, never tracked)
+tools/assets/
+tools/**/*.png

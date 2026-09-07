@@ -12,7 +12,11 @@
     "typecheck": "tsc --noEmit",
     "gate": "node scripts/budget.mjs",
     "nojs": "node scripts/nojs.mjs",
-    "smoke": "node scripts/smoke.mjs"
+    "smoke": "node scripts/smoke.mjs",
+    "pipeline:inventory": "node scripts/pipeline/inventory.ts",
+    "pipeline:face-proof": "node scripts/pipeline/face-proof.ts",
+    "pipeline:textures": "node scripts/pipeline/textures.ts",
+    "pipeline:clips": "node scripts/pipeline/clips.ts"
   },
   "dependencies": {
     "@fontsource-variable/jetbrains-mono": "5.3.0",
