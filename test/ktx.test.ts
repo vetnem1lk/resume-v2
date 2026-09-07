@@ -28,10 +28,13 @@ test('zstd only rides UASTC; RDO only on the explicit orm_u tier', () => {
   expect(ktxArgs('mask', 1)[ktxArgs('mask', 1).indexOf('--format') + 1]).toBe('R8_UNORM');
 });
 
-test('every plan entry has multiple-of-four dims and a tier-1 pick', () => {
+test('plan and tier-1 pick agree in both directions, on multiple-of-four dims', () => {
   for (const p of TEXTURE_PLAN) {
     for (const d of p.dims) expect(d % 4).toBe(0);
     expect(p.dims).toContain(TIER1_PICK[p.key]);
   }
+  // The reverse direction: a pick naming no plan entry would price 0 bytes into the tier-1 sum.
+  const planned = TEXTURE_PLAN.map((p) => p.key);
+  for (const k of Object.keys(TIER1_PICK)) expect(planned).toContain(k);
   expect(validateArgs('x.ktx2')).toEqual(['validate', '--warnings-as-errors', '--gltf-basisu', 'x.ktx2']);
 });

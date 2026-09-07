@@ -31,7 +31,8 @@ const tmpDir = resolve(s2, 'tex');
 mkdirSync(outDir, { recursive: true });
 mkdirSync(tmpDir, { recursive: true });
 
-const png = (pkg: string) => resolve(texRoot, pkg.replace(/^\//, '') + '.png');
+// UE's TextureExporterPNG reports FormatExtension "PNG", so the exported files are <name>.PNG.
+const png = (pkg: string) => resolve(texRoot, pkg.replace(/^\//, '') + '.PNG');
 const wanted = [...new Set(TEXTURE_PLAN.flatMap((p) => p.sources))];
 if (wanted.some((p) => !existsSync(png(p)))) {
   process.env.S2_TEX_OUT = texRoot.replace(/\\/g, '/');
@@ -79,7 +80,12 @@ for (const p of TEXTURE_PLAN) {
     console.log(`${p.key}@${dim} ${p.cls} ${channels}ch -> ${statSync(out).size} B`);
   }
 }
-const pick = (key: string, dim: number) => rows.find((r) => r.key === key && r.dim === dim)?.ktx2Bytes ?? 0;
+// A pick the matrix never encoded must not contribute a silent 0: that under-reports tier 1.
+const pick = (key: string, dim: number) => {
+  const row = rows.find((r) => r.key === key && r.dim === dim);
+  if (!row) throw new Error(`no encoded row for ${key}@${dim}`);
+  return row.ktx2Bytes;
+};
 const tier1Bytes = Object.entries(TIER1_PICK).filter(([k]) => !TIER1_EXCLUDE.has(k)).reduce((n, [k, d]) => n + pick(k, d), 0);
 const tier2HeadBytes = pick('head_bc', 2048);
 const summary = { rows, tier1Bytes, tier2HeadBytes, pick: TIER1_PICK };
