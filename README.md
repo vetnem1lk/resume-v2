@@ -38,7 +38,7 @@ JavaScript disabled; the 3D scene on top of it is a progressive enhancement.
 
 | entry JS | entry CSS | document |
 | -------- | --------- | -------- |
-| 437 B    | 3 674 B   | 5 581 B  |
+| 437 B    | 3 669 B   | 5 690 B  |
 
 Every number is gzip level 9 over the built file (`zlib.gzipSync(buf, { level: 9 }).length`),
 never the build log's column; `budget.json` carries each one rounded up to the next kibibyte
@@ -54,7 +54,8 @@ resume-v2/
   package-lock.json
   tsconfig.json              # one project: src, test, scripts/pipeline, vite.config.ts
   vite.config.ts             # plugin registration, MPA input, assetsInlineLimit, vitest include
-  .gitignore                 # build output plus every licensed asset extension: no binary can be staged by accident
+  .gitignore                 # build output plus the mesh, scene and texture-container extensions of the licensed
+                             # asset; images anywhere outside tools/ are caught by test/repo.test.ts instead
   .oxlintrc.json
   budget.json                # gz9 byte gates read by scripts/budget.mjs
   README.md                  # repository map + budget + gates
@@ -77,7 +78,8 @@ resume-v2/
     pipeline/morphs.ts       # the ARKit-52 vocabulary and the keep-list tiers the morph budget is priced at
     pipeline/vram.ts         # exact morph-texture VRAM: the RGBA32F row wrap the naive verts*slots*16*N misses
     pipeline/ktx.ts          # KTX2 encode recipe per texture class, the texture plan and the tier-1 pick
-    pipeline/glb.ts          # gltf-transform accounting of a GLB: decoded bytes per mesh/morph/clip vs on-disk size
+    pipeline/glb.ts          # gltf-transform accounting of a GLB: decoded bytes per mesh/morph/clip next to the
+                             # on-disk size, the JSON/BIN chunk split and the brotli-11 transfer size
   scripts/
     precompress.mjs          # brotli sidecars for every compressible file in dist/
     budget.mjs               # gz9 gates over dist/, entry purity, no inlined fonts, RU document, recruiter gate
@@ -105,8 +107,9 @@ resume-v2/
     inventory.test.ts        # the inventory summary arithmetic and the morph keep-list tiers
     vram.test.ts             # the morph VRAM formula, pinned at and past the maxTextureSize wrap
     ktx.test.ts              # the encode recipes: sRGB colour, assigned-linear data, zstd only on UASTC
-    glb.test.ts              # the byte-budget table: per mesh, per clip-second, decoded next to on-disk
-    fixtures/inventory-mini.json  # two hand-written FBX reports, a combine plus a module, the summary is pinned against
+    glb.test.ts              # the byte budget: the accounting arithmetic, the GLB chunk/transfer sizes, the table
+    fixtures/inventory-mini.json  # two hand-written FBX reports, a combine plus a module, that inventory.test.ts
+                             # pins the summary arithmetic against
   tools/
     face-proof.html          # bare three.js viewer: plays the proof GLB and asserts the morph weights move;
                              # ?glb= opens any other export and falls back to its first clip when it has no
