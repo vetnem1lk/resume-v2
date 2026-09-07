@@ -1,0 +1,37 @@
+/* Design tokens (design doc D3) and the two self-hosted variable fonts. The oxide
+   accent is used in exactly four places: the light strip, the active pill, the focus
+   ring and the CV button. Everything else is paper, ink, dim and rule.
+   @import must precede every other rule; import each family exactly once. */
+@import '@fontsource-variable/onest';
+@import '@fontsource-variable/jetbrains-mono';
+
+:root {
+  --paper: #f4f1ea;
+  --ink: #14161a;
+  --dim: #5b5f66;
+  --rule: #d9d3c6;
+  --oxide: #b7410e;
+  --font-display: 'Onest Variable', 'Onest Fallback', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono Variable', ui-monospace, Consolas, monospace;
+  --measure: 62ch;
+  --strip-h: 3.5rem;
+}
+
+/* Metric-matched fallback so the swap from Arial to Onest moves nothing (CLS gate
+   < 0.05). Fontsource hard-codes font-display: swap, which is right for LCP (the H1
+   paints in the fallback first). The four numbers are generated with capsize, never
+   hand-written: @capsizecss/unpack 4.0.1 over onest-latin-wght-normal.woff2 against
+   @capsizecss/metrics/arial. The weight range is required: without it the fallback
+   covers weight 400 only and every bold heading swaps from system-ui instead.
+   Measured against the cyrillic subset the same way, size-adjust lands at 103.9%,
+   1.2 % off the latin number, so one face covers both scripts. */
+@font-face {
+  font-family: 'Onest Fallback';
+  font-style: normal;
+  font-weight: 100 900;
+  src: local('Arial'), local('ArialMT');
+  size-adjust: 105.2039%;
+  ascent-override: 92.2019%;
+  descent-override: 28.9913%;
+  line-gap-override: 0%;
+}

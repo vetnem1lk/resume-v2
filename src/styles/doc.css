@@ -1,0 +1,793 @@
+/* The resume document: one light theme, four neutrals and a single oxide accent
+   (tokens.css), a paper text column set over a fixed scene layer. Mobile first;
+   1024px is the only layout breakpoint, below which the scene becomes a poster in
+   flow, under the header block. Corners are square everywhere, on purpose. */
+@import './tokens.css';
+
+/* 1. Reset and base ------------------------------------------------------------- */
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  line-height: 1.5;
+  -webkit-text-size-adjust: 100%;
+}
+
+h1,
+h2,
+p,
+ul { margin: 0; }
+ul { padding: 0; list-style: none; }
+strong { font-weight: 600; }
+
+a {
+  color: inherit;
+  text-decoration: none;
+  transition: color 180ms ease, border-color 180ms ease, background-color 180ms ease;
+}
+
+:focus-visible { outline: 2px solid var(--oxide); outline-offset: 3px; }
+
+/* The icon sprite is a 0x0 anchor for <use>, never display: none (that drops the
+   symbols in some engines); absolute so it claims no line box before the strip. */
+.sprite {
+  position: absolute;
+  width: 0;
+  height: 0;
+  overflow: hidden;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.skip {
+  position: fixed;
+  top: -100%;
+  left: .75rem;
+  z-index: 9;
+  padding: .75rem 1rem;
+  background: var(--oxide);
+  color: var(--paper);
+  font: 500 .8125rem/1 var(--font-mono);
+  letter-spacing: .04em;
+}
+
+.skip:focus { top: .75rem; }
+
+/* 2. Fast-path strip ------------------------------------------------------------ */
+/* Name, role, CV, three contacts and the language switch, in the first paint.
+   Below 1024px it is two rows (name over role, controls under them) and the
+   --strip-h token grows with it, so the scene and the pills stay aligned to it. */
+@media (max-width: 1023px) {
+  :root { --strip-h: 6rem; }
+}
+
+.strip {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: .5rem;
+  height: var(--strip-h);
+  padding: 0 1.25rem;
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+}
+
+.strip__who {
+  display: flex;
+  flex-direction: column;
+  gap: .125rem;
+}
+
+.strip__name {
+  font-size: 1rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.strip__role {
+  color: var(--dim);
+  font: 400 .625rem/1.4 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: .1em;
+}
+
+.strip__quick {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: .75rem;
+}
+
+/* The one filled control on the page. */
+.cv-button {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  min-height: 44px;
+  padding: 0 .875rem;
+  background: var(--oxide);
+  color: var(--paper);
+  font: 500 .8125rem/1 var(--font-mono);
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+
+/* The hover state is a darker mix of the same accent, never a second colour. */
+.cv-button:hover { background: color-mix(in srgb, var(--oxide) 84%, var(--ink)); }
+
+.icon-link {
+  display: inline-flex;
+  align-items: center;
+  gap: .5em;
+  min-height: 44px;
+  color: var(--dim);
+  font: 400 .8125rem/1 var(--font-mono);
+  white-space: nowrap;
+}
+
+.icon-link:hover { color: var(--ink); }
+
+.icon {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+  flex: none;
+}
+
+.lang {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 .25rem;
+  color: var(--dim);
+  font: 500 .8125rem/1 var(--font-mono);
+  letter-spacing: .06em;
+}
+
+.lang:hover { color: var(--ink); }
+
+/* Under the breakpoint the glyphs carry the contact links; their labels stay in the
+   accessible name instead of being deleted. The CV button keeps its visible label. */
+@media (max-width: 1023px) {
+  .strip__quick .icon-link span {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    margin: -1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+@media (min-width: 1024px) {
+  .strip {
+    flex-direction: row;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .strip__who {
+    flex-direction: row;
+    align-items: baseline;
+    gap: 1rem;
+  }
+
+  .strip__role { font-size: .6875rem; }
+
+  .strip__quick {
+    margin-left: auto;
+    justify-content: flex-end;
+    gap: 1.25rem;
+  }
+}
+
+/* 3. Stage ---------------------------------------------------------------------- */
+/* Decoration only (aria-hidden in the markup): the hatched letterform, the contour
+   field, the light strip and the box the scene occupies from S2 on. Fixed behind the
+   document on wide screens, a full-height poster in flow on narrow ones, where it
+   follows the header block so the name, role and meta hold the first screen. In flow it
+   is a child of .doc, hence the negative inline margin: the poster is full-bleed, the
+   text column is not. z-index is -1, not 0, because .doc is a stacking context
+   (position: relative; z-index: 1): a positioned child at 0 paints above .doc's in-flow
+   text, which the fixed stage would then cover from S2 on. A negative child paints after
+   .doc's (transparent) background and before its content, i.e. behind the text column;
+   in flow nothing overlaps the poster, so it stays visible there too.
+   svh, never dvh: dvh re-resolves on every scroll tick and the
+   reserved box would breathe. */
+.stage {
+  --strip-x: 50%;
+
+  position: relative;
+  z-index: -1;
+  height: calc(100svh - var(--strip-h));
+  margin: 0 -1.25rem;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.stage__contour {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: .04;
+}
+
+.stage__contour rect { fill: var(--ink); }
+
+.stage__letterform {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 60vw;
+  color: var(--ink);
+  opacity: .16;
+  transform: translate(-50%, -50%);
+}
+
+.stage__letterform path { fill: url(#hatch-vk); }
+
+/* The page's only gradient. Blurred, so it reads as light falling through the scene
+   rather than as a coloured bar. */
+.stage__light {
+  position: absolute;
+  top: -4%;
+  bottom: -4%;
+  left: var(--strip-x);
+  width: 2.5vw;
+  min-width: 18px;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    180deg,
+    rgb(255 252 248 / 0) 0%,
+    rgb(255 253 250 / .9) 20%,
+    rgb(255 246 240 / .96) 48%,
+    rgb(255 252 249 / .85) 76%,
+    rgb(255 252 248 / 0) 100%
+  );
+  filter: blur(7px);
+}
+
+.stage__poster {
+  position: absolute;
+  top: 50%;
+  left: var(--strip-x);
+  width: min(38vw, 460px);
+  min-height: 100svh;
+  transform: translate(-50%, -50%);
+}
+
+@media (min-width: 1024px) {
+  .stage {
+    --strip-x: 46%;
+
+    position: fixed;
+    inset: var(--strip-h) 0 0 0;
+    height: auto;
+    margin: 0;
+  }
+
+  /* Rotated, so the element's width is the mark's visual height: 43vw reads as ~73 %
+     of the stage, the proportion the founder reference holds. */
+  .stage__letterform {
+    left: 0;
+    width: 43vw;
+    transform: translateY(-50%) rotate(-90deg);
+  }
+}
+
+@media (min-width: 1024px) and (max-width: 1279px) {
+  .stage { --strip-x: 40%; }
+}
+
+/* 4. Anchor pills --------------------------------------------------------------- */
+/* A right-hand rail on wide screens, a sticky scroll row under the strip below the
+   breakpoint. Plain links without JS; main.ts only sets aria-current. */
+.pills {
+  position: sticky;
+  top: var(--strip-h);
+  z-index: 3;
+  display: flex;
+  gap: .25rem;
+  padding: 0 1rem;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  background: var(--paper);
+  border-bottom: 1px solid var(--rule);
+}
+
+.pills a {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 .625rem;
+  border-bottom: 2px solid transparent;
+  color: var(--dim);
+  font: 500 .6875rem/1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  scroll-snap-align: start;
+}
+
+.pills a:hover { color: var(--ink); }
+
+.pills a[aria-current='location'] {
+  border-bottom-color: var(--oxide);
+  color: var(--oxide);
+}
+
+@media (min-width: 1024px) {
+  .pills {
+    position: fixed;
+    top: 50%;
+    right: 1.25rem;
+    left: auto;
+    z-index: 2;
+    flex-direction: column;
+    gap: 0;
+    padding: 0;
+    overflow: visible;
+    background: none;
+    border-bottom: 0;
+    transform: translateY(-50%);
+  }
+
+  .pills a {
+    padding: 0 0 0 .75rem;
+    border-bottom: 0;
+    border-left: 2px solid transparent;
+  }
+
+  .pills a[aria-current='location'] { border-left-color: var(--oxide); }
+}
+
+/* 5. Document column ------------------------------------------------------------ */
+/* The reading column sits to the right of the scene and never under the pill rail:
+   its width is what is left after the offset and the rail, capped at --measure. */
+.doc {
+  position: relative;
+  z-index: 1;
+  padding: 0 1.25rem 4rem;
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 2.5rem 0;
+  scroll-margin-top: calc(var(--strip-h) + 3.5rem);
+}
+
+/* screen only: the print sheet flattens these, and the id selectors below would beat
+   its class selectors on specificity if they reached paper. */
+@media screen and (min-width: 1024px) {
+  .doc {
+    --rail: 10rem;
+
+    width: min(var(--measure), calc(54vw - var(--rail)));
+    margin-left: 46vw;
+    padding: 0 0 20vh;
+  }
+
+  .block {
+    padding: 0;
+    scroll-margin-top: calc(var(--strip-h) + 2rem);
+  }
+
+  /* The eight blocks spread over ~780svh: the scroll runway the camera reads in S2.
+     The header starts high instead of centred, so the name is never below the fold. */
+  #top {
+    min-height: 110svh;
+    justify-content: flex-start;
+    padding-top: 15vh;
+  }
+
+  #profile { min-height: 90svh; }
+  #projects { min-height: 130svh; }
+  #experience { min-height: 120svh; }
+  #skills { min-height: 70svh; }
+  #education { min-height: 70svh; }
+  #achievements { min-height: 90svh; }
+  #contact { min-height: 100svh; }
+}
+
+@media screen and (min-width: 1280px) {
+  .doc {
+    width: min(var(--measure), calc(48vw - var(--rail)));
+    margin-left: 52vw;
+  }
+}
+
+/* 6. Typography ----------------------------------------------------------------- */
+h1 {
+  font-size: clamp(2.4rem, 5vw, 4.5rem);
+  font-weight: 700;
+  line-height: 1.02;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+
+.role {
+  margin-top: 1rem;
+  color: var(--dim);
+  font: 400 .8125rem/1.4 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: .14em;
+}
+
+/* One max-content column: four mono lines that align at every width. A wrapping row
+   broke into ragged 2x2 and 3-line shapes in the page's highest-attention area. */
+.meta {
+  display: grid;
+  grid-template-columns: max-content;
+  justify-content: start;
+  gap: .375rem;
+  margin-top: 1.75rem;
+  color: var(--dim);
+  font: 400 .8125rem/1.4 var(--font-mono);
+}
+
+.meta--level { color: var(--ink); }
+
+/* Section headings: the CV's own mono caps label, left-aligned, the rule running
+   out to the edge of the column. */
+.block__head {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1.75rem;
+  color: var(--dim);
+  font: 500 .75rem/1 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: .18em;
+}
+
+.block__head::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--rule);
+}
+
+.doc p,
+.doc li { line-height: 1.55; }
+
+.profile { max-width: var(--measure); }
+
+/* Projects: a head line, bullets and the stack, split by air and one hairline. */
+.proj + .proj {
+  margin-top: 2rem;
+  padding-top: 2rem;
+  border-top: 1px solid var(--rule);
+}
+
+.proj__name,
+.job__co {
+  font-size: 1.1875rem;
+  font-weight: 600;
+}
+
+.proj__tagline { color: var(--dim); }
+
+.proj__link a,
+.ach__link a,
+.more a,
+.card__v1 a {
+  border-bottom: 1px solid var(--rule);
+  color: var(--dim);
+}
+
+.proj__link a:hover,
+.ach__link a:hover,
+.more a:hover,
+.card__v1 a:hover {
+  border-bottom-color: var(--ink);
+  color: var(--ink);
+}
+
+.proj ul,
+.job > ul:not(.titles) {
+  display: grid;
+  gap: .5rem;
+  margin-top: .75rem;
+}
+
+.proj li,
+.job > ul:not(.titles) li {
+  position: relative;
+  padding-left: 1.125rem;
+}
+
+.proj li::before,
+.job > ul:not(.titles) li::before {
+  content: '';
+  position: absolute;
+  top: .62em;
+  left: 0;
+  width: 6px;
+  height: 6px;
+  background: var(--rule);
+}
+
+.tech,
+.certs {
+  margin-top: .75rem;
+  color: var(--dim);
+  font: 400 .8125rem/1.5 var(--font-mono);
+}
+
+.more { margin-top: 2rem; }
+
+/* Career: company and dates on one line, the roles hung off a rule. */
+.job + .job {
+  margin-top: 2.5rem;
+  padding-top: 2.5rem;
+  border-top: 1px solid var(--rule);
+}
+
+.job__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .25rem 1rem;
+}
+
+.job__when {
+  color: var(--dim);
+  font: 400 .8125rem/1.4 var(--font-mono);
+}
+
+.job__sub {
+  margin-top: .375rem;
+  color: var(--dim);
+}
+
+.titles {
+  display: grid;
+  gap: .375rem;
+  margin-top: 1.25rem;
+  padding-left: .875rem;
+  border-left: 2px solid var(--rule);
+}
+
+.titles li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .25rem 1rem;
+  color: var(--dim);
+}
+
+.titles--current {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+}
+
+.chip {
+  padding: .375rem .625rem;
+  border: 1px solid var(--rule);
+  color: var(--dim);
+  font: 400 .75rem/1.2 var(--font-mono);
+}
+
+.chip--hi {
+  border-color: var(--ink);
+  color: var(--ink);
+}
+
+/* Education: two key-value lines, then the certificate run. */
+.edu {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: .25rem 1rem;
+  font-size: 1.1875rem;
+}
+
+.edu__program { margin-top: .375rem; }
+
+.edu__place { color: var(--dim); }
+
+.certs { margin-top: 1.5rem; }
+
+.certs__label {
+  display: block;
+  margin-bottom: .25rem;
+  text-transform: uppercase;
+  letter-spacing: .12em;
+}
+
+.achs {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.ach__title { display: block; }
+
+.ach__detail { color: var(--dim); }
+
+/* 7. Name card ------------------------------------------------------------------ */
+.card {
+  padding: 1.75rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+}
+
+.card__name {
+  font-size: 1.375rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* The row, not the summary, is the CV panel's containing block (see .cv-menu > ul). */
+.card__icons {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1.5rem;
+  margin-top: .5rem;
+}
+
+/* All three rules are needed; Safari honours only the last one. */
+.cv-menu summary {
+  display: flex;
+  list-style: none;
+  cursor: pointer;
+}
+
+.cv-menu summary::marker { content: none; }
+.cv-menu summary::-webkit-details-marker { display: none; }
+
+/* Anchored to the right edge of the card, not to the summary: from there the panel grows
+   leftwards, so it fits the longest label on one line and still clears the pill rail. */
+.cv-menu > ul {
+  position: absolute;
+  right: -.5rem;
+  bottom: calc(100% + .5rem);
+  z-index: 5;
+  width: max-content;
+  max-width: calc(100vw - 3rem);
+  padding: .25rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  box-shadow: 0 8px 24px rgb(20 22 26 / .1);
+}
+
+.cv-menu > ul a {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 .75rem;
+  color: var(--dim);
+  font: 400 .8125rem/1.3 var(--font-mono);
+}
+
+.cv-menu > ul a:hover {
+  background: rgb(20 22 26 / .05);
+  color: var(--ink);
+}
+
+.card__v1 {
+  margin-top: .5rem;
+  font: 400 .8125rem/1.4 var(--font-mono);
+}
+
+/* The one link that stands alone on its line gets a real hit area; the rest of the
+   links sit inside sentences, where WCAG exempts them from the target size. */
+.card__v1 a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  border-bottom: 0;
+  text-decoration: underline;
+  text-decoration-color: var(--rule);
+  text-underline-offset: 3px;
+}
+
+.card__v1 a:hover { text-decoration-color: var(--ink); }
+
+/* 8. Reveals -------------------------------------------------------------------- */
+/* The finished state is the base rule, so Firefox (no scroll-driven animations yet)
+   and every reduced-motion visitor get the whole document. Nothing else animates and
+   no scroll listener exists anywhere in the build. */
+.block > * {
+  opacity: 1;
+  translate: none;
+}
+
+@keyframes reveal {
+  from { opacity: 0; translate: 0 12px; }
+  to { opacity: 1; translate: 0; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .block > * {
+      /* order is load-bearing: the shorthand resets animation-timeline, so the
+         timeline is declared after it; duration stays auto (a time value skews a
+         view timeline) */
+      animation: reveal linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 35%;
+    }
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-timeline: auto !important;
+    animation-duration: .01ms !important;
+    transition-duration: .01ms !important;
+  }
+}
+
+/* 9. Print ---------------------------------------------------------------------- */
+/* The chrome is screen furniture; on paper the document is the whole artifact and
+   the card's links print their addresses. */
+@media print {
+  .strip,
+  .stage,
+  .pills,
+  .skip { display: none; }
+
+  .doc {
+    width: auto;
+    margin: 0;
+    padding: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .block {
+    min-height: 0;
+    margin-bottom: 8mm;
+    padding: 0;
+    break-inside: avoid;
+  }
+
+  h1,
+  h2 { break-after: avoid; }
+
+  /* On paper the card's links are the only way to reach any of them, so the target is
+     printed after the label. mailto: is included or the address never reaches the page:
+     the strip is hidden in print and the phone is off the document by design (D14). */
+  .card a[href^='http']::after,
+  .card a[href^='mailto']::after { content: ' (' attr(href) ')'; }
+
+  @page {
+    size: A4;
+    margin: 14mm;
+  }
+}
