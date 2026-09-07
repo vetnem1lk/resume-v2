@@ -76,6 +76,7 @@ resume-v2/
     pipeline/morphs.ts       # the ARKit-52 vocabulary and the keep-list tiers the morph budget is priced at
     pipeline/vram.ts         # exact morph-texture VRAM: the RGBA32F row wrap the naive verts*slots*16*N misses
     pipeline/ktx.ts          # KTX2 encode recipe per texture class, the texture plan and the tier-1 pick
+    pipeline/glb.ts          # gltf-transform accounting of a GLB: decoded bytes per mesh/morph/clip vs on-disk size
   scripts/
     precompress.mjs          # brotli sidecars for every compressible file in dist/
     budget.mjs               # gz9 gates over dist/, entry purity, no inlined fonts, RU document, recruiter gate
@@ -87,12 +88,15 @@ resume-v2/
     pipeline/inventory.ts    # measures the whole FBX package, writes the per-file JSONs plus inventory.json/.md
     pipeline/face-proof.ts   # face proof end to end: the UE export, the two Blender jobs, the GLB copy for the viewer
     pipeline/textures.ts     # the used PNG set out of UE, resized and composited, encoded and validated, then priced
+    pipeline/clips.ts        # measurement exports per morph tier plus the baked clips, priced into the tier-1 budget
     pipeline/blender/fbxlib.py       # shared Blender helpers: import, mesh stats, bound bones, shape-key deltas, GLB JSON
     pipeline/blender/inventory.py    # one fresh scene per FBX, one JSON per file, one sentinel line
     pipeline/blender/face_proof.py   # proves the shape-key f-curves survived the FBX, exports the GLB, writes the verdict
+    pipeline/blender/measure.py      # export hygiene, morph pruning per tier, GLB exports and the name-keyed clip bake
     pipeline/blender/llf_csv.py      # Live Link Face CSV -> shape-key f-curves, no add-on, with a synthetic self-test
     pipeline/ue/face_proof_synth.py  # synthetic ARKit clip on the idle, exported to FBX with its blend-shape curves
     pipeline/ue/export_textures.py   # the texture set of the shipped look out of UE at source resolution
+    pipeline/ue/export_clips.py      # the pack's body clips out of UE as bones-only FBX, one per clip
   test/
     content.test.ts  render.test.ts  shell.test.ts  pdf.test.ts  icons.test.ts  pills.test.ts
     paths.test.ts            # path defaults and environment overrides
@@ -100,6 +104,7 @@ resume-v2/
     inventory.test.ts        # the inventory summary arithmetic and the morph keep-list tiers
     vram.test.ts             # the morph VRAM formula, pinned at and past the maxTextureSize wrap
     ktx.test.ts              # the encode recipes: sRGB colour, assigned-linear data, zstd only on UASTC
+    glb.test.ts              # the byte-budget table: per mesh, per clip-second, decoded next to on-disk
   tools/
     face-proof.html          # bare three.js viewer: plays the proof GLB and asserts the morph weights move
                              # (the GLB it loads lives in tools/assets/, gitignored with the rest of the asset)
