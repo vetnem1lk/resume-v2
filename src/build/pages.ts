@@ -14,6 +14,8 @@ export function resumePages(): Plugin {
       // dev: once per served HTML request, ctx.path = the rewritten URL ('/ru/index.html');
       // build: once per input, ctx = { path, filename } only (a 'pre' hook sees no bundle).
       handler(html, ctx) {
+        // Dev routes every .html request through this hook; only the two shells carry the markers.
+        if (!ctx.path.endsWith('/index.html')) return html;
         const c = ctx.path.startsWith('/ru/') ? ru : en;
         const fill = (src: string, marker: string, value: string) => {
           if (!src.includes(marker)) throw new Error(`resume-pages: ${ctx.path} has no ${marker}`);
