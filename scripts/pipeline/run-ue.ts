@@ -18,7 +18,9 @@ export function runUe(script: string, logFile: string, expectFiles: string[]): P
       try { log = readFileSync(logFile, 'utf8'); } catch { return reject(new Error(`no UE log at ${logFile} (exit ${code})`)); }
       const line = log.split(/\r?\n/).findLast((l) => l.includes(MARK));
       if (!line) return reject(new Error(`UE job wrote no ${MARK.trim()} (exit ${code}); tail:\n${log.slice(-3000)}`));
-      const result = JSON.parse(line.slice(line.indexOf(MARK) + MARK.length)) as Record<string, unknown>;
+      let result: Record<string, unknown>;
+      try { result = JSON.parse(line.slice(line.indexOf(MARK) + MARK.length)) as Record<string, unknown>; }
+      catch { return reject(new Error(`UE job wrote an unparsable ${MARK.trim()} line: ${line.slice(-500)}`)); }
       for (const f of expectFiles) {
         let size = 0;
         try { size = statSync(f).size; } catch { size = 0; }
