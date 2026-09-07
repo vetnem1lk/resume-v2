@@ -1,0 +1,87 @@
+<!doctype html>
+<!-- Bare viewer for the S2 face proof: loads assets/face-proof.glb, plays its 'weights' clip and
+     asserts that morphTargetInfluences actually move. Outside the site bundle; assets are gitignored. -->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>face proof</title>
+<style>html,body{margin:0;height:100%;background:#F4F1EA;color:#14161A;font:13px/1.4 ui-monospace,monospace}#hud{position:fixed;left:12px;top:12px;white-space:pre;background:rgba(244,241,234,.85);padding:8px 10px;border:1px solid #D9D3C6}canvas{display:block;width:100%;height:100%}</style>
+<script type="importmap">
+{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js","three/addons/":"https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/"}}
+</script>
+</head>
+<body>
+<div id="hud">loading</div>
+<canvas id="c"></canvas>
+<script type="module">
+// Full URLs, not the bare specifiers above: a dev server that rewrites inline modules cannot see
+// the import map. The map stays because the add-ons resolve their own 'three' import through it.
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.185.1/build/three.module.js';
+import { GLTFLoader } from 'https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/loaders/GLTFLoader.js';
+import { KTX2Loader } from 'https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/loaders/KTX2Loader.js';
+import { MeshoptDecoder } from 'https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/libs/meshopt_decoder.module.js';
+import { OrbitControls } from 'https://cdn.jsdelivr.net/npm/three@0.185.1/examples/jsm/controls/OrbitControls.js';
+
+const url = new URLSearchParams(location.search).get('glb') ?? 'assets/face-proof.glb';
+const hud = document.getElementById('hud');
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#F4F1EA');
+const camera = new THREE.PerspectiveCamera(32, innerWidth / innerHeight, 0.01, 50);
+camera.position.set(0, 1.6, 0.55);
+const controls = new OrbitControls(camera, canvas);
+controls.target.set(0, 1.55, 0);
+scene.add(new THREE.HemisphereLight(0xffffff, 0x888888, 1.2));
+const key = new THREE.DirectionalLight(0xffffff, 2.0); key.position.set(1, 2, 2); scene.add(key);
+
+const ktx2 = new KTX2Loader().detectSupport(renderer);
+const loader = new GLTFLoader().setKTX2Loader(ktx2).setMeshoptDecoder(MeshoptDecoder);
+const gltf = await loader.parseAsync(await (await fetch(url)).arrayBuffer());
+scene.add(gltf.scene);
+const morphMeshes = [];
+gltf.scene.traverse((o) => { if (o.morphTargetInfluences) morphMeshes.push(o); });
+const head = morphMeshes.find((m) => m.morphTargetDictionary && 'jawOpen' in m.morphTargetDictionary);
+if (!head) throw new Error('no mesh with a jawOpen morph');
+const clip = gltf.animations.find((c) => c.tracks.some((t) => t.name.endsWith('.morphTargetInfluences')));
+if (!clip) throw new Error('no weights clip');
+const mixer = new THREE.AnimationMixer(gltf.scene);
+mixer.clipAction(clip).play();
+
+const maxTex = renderer.capabilities.maxTextureSize;
+const vram = morphMeshes.reduce((n, m) => {
+  const verts = m.geometry.attributes.position.count;
+  const slots = m.geometry.morphAttributes.color ? 3 : m.geometry.morphAttributes.normal ? 2 : 1;
+  const targets = m.morphTargetInfluences.length;
+  const w0 = verts * slots, h = w0 > maxTex ? Math.ceil(w0 / maxTex) : 1, w = w0 > maxTex ? maxTex : w0;
+  return n + w * h * 16 * targets;
+}, 0);
+
+let last = performance.now();                          // THREE.Clock is deprecated in r185
+const jaw = head.morphTargetDictionary.jawOpen;
+let peak = 0;
+window.__proof = { moved: false, peak: 0, clip: clip.name, targets: head.morphTargetInfluences.length, tracks: clip.tracks.length };
+function frame() {
+  const now = performance.now();
+  const dt = (now - last) / 1000;
+  last = now;
+  mixer.update(dt);
+  controls.update();
+  renderer.render(scene, camera);
+  const v = head.morphTargetInfluences[jaw];
+  peak = Math.max(peak, v);
+  window.__proof.moved = peak > 0.5;
+  window.__proof.peak = peak;
+  hud.textContent = `clip ${clip.name}  ${clip.duration.toFixed(2)} s  tracks ${clip.tracks.length}\n` +
+    `head ${head.name}: ${head.geometry.attributes.position.count} verts, ${head.morphTargetInfluences.length} targets\n` +
+    `jawOpen ${v.toFixed(3)}  peak ${peak.toFixed(3)}  ${peak > 0.5 ? 'MOVED' : 'still'}\n` +
+    `calls ${renderer.info.render.calls}  tris ${renderer.info.render.triangles}  morph VRAM ${(vram / 1e6).toFixed(2)} MB (maxTex ${maxTex})`;
+  requestAnimationFrame(frame);
+}
+addEventListener('resize', () => { camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); renderer.setSize(innerWidth, innerHeight); });
+frame();
+</script>
+</body>
+</html>
