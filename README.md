@@ -84,14 +84,21 @@ resume-v2/
     pipeline/run-blender.ts  # one headless Blender job; hands back the job's S2_ sentinel line
     pipeline/run-ue.ts       # one headless UE python job; trusts its S2_RESULT line and the files it wrote
     pipeline/inventory.ts    # measures the whole FBX package, writes the per-file JSONs plus inventory.json/.md
-    pipeline/blender/fbxlib.py     # shared Blender helpers: import, mesh stats, bound bones, shape-key deltas, GLB JSON
-    pipeline/blender/inventory.py  # one fresh scene per FBX, one JSON per file, one sentinel line
+    pipeline/face-proof.ts   # face proof end to end: the UE export, the two Blender jobs, the GLB copy for the viewer
+    pipeline/blender/fbxlib.py       # shared Blender helpers: import, mesh stats, bound bones, shape-key deltas, GLB JSON
+    pipeline/blender/inventory.py    # one fresh scene per FBX, one JSON per file, one sentinel line
+    pipeline/blender/face_proof.py   # proves the shape-key f-curves survived the FBX, exports the GLB, writes the verdict
+    pipeline/blender/llf_csv.py      # Live Link Face CSV -> shape-key f-curves, no add-on, with a synthetic self-test
+    pipeline/ue/face_proof_synth.py  # synthetic ARKit clip on the idle, exported to FBX with its blend-shape curves
   test/
     content.test.ts  render.test.ts  shell.test.ts  pdf.test.ts  icons.test.ts  pills.test.ts
     paths.test.ts            # path defaults and environment overrides
     repo.test.ts             # the guard: no licensed binary is ever tracked by git
     inventory.test.ts        # the inventory summary arithmetic and the morph keep-list tiers
     vram.test.ts             # the morph VRAM formula, pinned at and past the maxTextureSize wrap
+  tools/
+    face-proof.html          # bare three.js viewer: plays the proof GLB and asserts the morph weights move
+                             # (the GLB it loads lives in tools/assets/, gitignored with the rest of the asset)
 ```
 
 ## Gates
