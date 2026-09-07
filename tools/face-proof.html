@@ -44,11 +44,19 @@ scene.add(gltf.scene);
 const morphMeshes = [];
 gltf.scene.traverse((o) => { if (o.morphTargetInfluences) morphMeshes.push(o); });
 const head = morphMeshes.find((m) => m.morphTargetDictionary && 'jawOpen' in m.morphTargetDictionary);
-if (!head) throw new Error('no mesh with a jawOpen morph');
-const clip = gltf.animations.find((c) => c.tracks.some((t) => t.name.endsWith('.morphTargetInfluences')));
-if (!clip) throw new Error('no weights clip');
+// A body-clip GLB carries no weights track: play its first clip and skip the face assertion.
+const hasWeights = (c) => c.tracks.some((t) => t.name.endsWith('.morphTargetInfluences'));
+const clip = gltf.animations.find(hasWeights) ?? gltf.animations[0];
+if (!clip) throw new Error('no animation clip');
+if (hasWeights(clip) && !head) throw new Error('no mesh with a jawOpen morph');
 const mixer = new THREE.AnimationMixer(gltf.scene);
 mixer.clipAction(clip).play();
+if (!hasWeights(clip)) {                               // body motion needs the whole rig in frame
+  const box = new THREE.Box3().setFromObject(gltf.scene);
+  const centre = box.getCenter(new THREE.Vector3());
+  camera.position.set(centre.x, centre.y, centre.z + Math.max(box.max.y - box.min.y, 0.5) * 1.7);
+  controls.target.copy(centre);
+}
 
 const maxTex = renderer.capabilities.maxTextureSize;
 const vram = morphMeshes.reduce((n, m) => {
@@ -60,9 +68,9 @@ const vram = morphMeshes.reduce((n, m) => {
 }, 0);
 
 let last = performance.now();                          // THREE.Clock is deprecated in r185
-const jaw = head.morphTargetDictionary.jawOpen;
+const jaw = hasWeights(clip) ? head.morphTargetDictionary.jawOpen : null;   // null = nothing to assert
 let peak = 0;
-window.__proof = { moved: false, peak: 0, clip: clip.name, targets: head.morphTargetInfluences.length, tracks: clip.tracks.length };
+window.__proof = { moved: jaw === null ? null : false, peak: 0, clip: clip.name, targets: head ? head.morphTargetInfluences.length : 0, tracks: clip.tracks.length };
 function frame() {
   const now = performance.now();
   const dt = (now - last) / 1000;
@@ -70,13 +78,17 @@ function frame() {
   mixer.update(dt);
   controls.update();
   renderer.render(scene, camera);
-  const v = head.morphTargetInfluences[jaw];
-  peak = Math.max(peak, v);
-  window.__proof.moved = peak > 0.5;
-  window.__proof.peak = peak;
+  let weights = 'body clip: no morph weights track to assert';
+  if (jaw !== null) {
+    const v = head.morphTargetInfluences[jaw];
+    peak = Math.max(peak, v);
+    window.__proof.moved = peak > 0.5;
+    window.__proof.peak = peak;
+    weights = `jawOpen ${v.toFixed(3)}  peak ${peak.toFixed(3)}  ${peak > 0.5 ? 'MOVED' : 'still'}`;
+  }
   hud.textContent = `clip ${clip.name}  ${clip.duration.toFixed(2)} s  tracks ${clip.tracks.length}\n` +
-    `head ${head.name}: ${head.geometry.attributes.position.count} verts, ${head.morphTargetInfluences.length} targets\n` +
-    `jawOpen ${v.toFixed(3)}  peak ${peak.toFixed(3)}  ${peak > 0.5 ? 'MOVED' : 'still'}\n` +
+    (head ? `head ${head.name}: ${head.geometry.attributes.position.count} verts, ${head.morphTargetInfluences.length} targets\n` : 'no morphed mesh\n') +
+    weights + '\n' +
     `calls ${renderer.info.render.calls}  tris ${renderer.info.render.triangles}  morph VRAM ${(vram / 1e6).toFixed(2)} MB (maxTex ${maxTex})`;
   requestAnimationFrame(frame);
 }
