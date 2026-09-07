@@ -2,7 +2,7 @@
 // inventory.md (module set _03 + morph ranking) next to the per-file JSONs.
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { moduleSet, morphRanking, rows, toMarkdown, type InventoryFile } from '../../src/pipeline/inventory.ts';
+import { moduleSet, morphRanking, toMarkdown, type InventoryFile } from '../../src/pipeline/inventory.ts';
 import { PATHS, REPO_ROOT } from './paths.ts';
 import { runBlender } from './run-blender.ts';
 
@@ -20,7 +20,9 @@ if (sentinel !== `S2_INVENTORY_DONE ${files.length}`) throw new Error(`inventory
 
 const inv: InventoryFile[] = readdirSync(outDir).filter((f) => f.endsWith('.json') && f !== 'inventory.json')
   .map((f) => JSON.parse(readFileSync(resolve(outDir, f), 'utf8')) as InventoryFile);
+if (inv.length !== files.length) throw new Error(`inventory: ${inv.length} reports for ${files.length} files (stale reports in the build directory?)`);
 writeFileSync(resolve(outDir, 'inventory.json'), JSON.stringify(inv, null, 1));
-const md = toMarkdown({ set: moduleSet(inv, LOOK), rows: rows(inv), ranking: morphRanking(inv, LOOK, HEAD) });
+const set = moduleSet(inv, LOOK);
+const md = toMarkdown({ set, rows: set.objects, ranking: morphRanking(inv, LOOK, HEAD) });
 writeFileSync(resolve(outDir, 'inventory.md'), md);
 console.log(md);

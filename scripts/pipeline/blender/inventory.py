@@ -34,6 +34,6 @@ for path in paths:
         e["shape_keys"] = shape_key_report(o)
         e["images"] = [img for s in o.material_slots for img in material_images(s.material)]
         report["meshes"][o.name] = e
-    write_json(os.path.join(out_dir, os.path.splitext(os.path.basename(path))[0] + ".json"), report)
+    write_json(os.path.join(out_dir, os.path.splitext(report["file"].replace("/", "__"))[0] + ".json"), report)
 
 print("S2_INVENTORY_DONE", len(paths))

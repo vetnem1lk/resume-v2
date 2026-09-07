@@ -37,8 +37,11 @@ test('keep-lists are ARKit names, nested, and never contain eyeLook', () => {
   expect(KEEP_24.some((n) => EYE_LOOK.includes(n))).toBe(false);
 });
 
-test('markdown carries the module-set header and one line per object', () => {
-  const md = toMarkdown({ set: moduleSet(inv, 'SK_MechanicGirl_03.fbx'), rows: rows(inv), ranking: morphRanking(inv, 'SK_MechanicGirl_03.fbx', 'SK_MECHANICGIRL_HEAD') });
+test('markdown carries the module-set header and one line per object of that set only', () => {
+  const set = moduleSet(inv, 'SK_MechanicGirl_03.fbx');
+  const md = toMarkdown({ set, rows: set.objects, ranking: morphRanking(inv, 'SK_MechanicGirl_03.fbx', 'SK_MECHANICGIRL_HEAD') });
   expect(md).toContain('| SK_MECHANICGIRL_HEAD | 10 | 16 | 2 |');
   expect(md).toContain('30 verts');
+  // The other file also holds a SK_MECHANICGIRL_HEAD: rows under the header must be this set's.
+  expect(md.match(/^\| SK_MECHANICGIRL_/gm)).toHaveLength(2);
 });
