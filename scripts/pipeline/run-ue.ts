@@ -9,7 +9,9 @@ const MARK = 'S2_RESULT ';
 export function runUe(script: string, logFile: string, expectFiles: string[]): Promise<Record<string, unknown>> {
   const project = PATHS.ueProject;
   if (!project) throw new Error('UE_PROJECT is not set (path to the .uproject that holds the pack)');
-  const argv = [project, '-run=pythonscript', `-script=${script}`, '-unattended', '-nopause', '-nosplash', '-nop4', `-abslog=${logFile}`];
+  // -AllowCommandletRendering: the skeletal-mesh FBX exporter builds material-baking data through a
+  // temporary component and asserts on its render proxy, which only exists when rendering is allowed.
+  const argv = [project, '-run=pythonscript', `-script=${script}`, '-unattended', '-nopause', '-nosplash', '-nop4', '-AllowCommandletRendering', `-abslog=${logFile}`];
   return new Promise((resolvePromise, reject) => {
     const child = spawn(PATHS.ueCmd, argv, { stdio: 'ignore' });
     child.on('error', reject);
