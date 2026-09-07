@@ -72,6 +72,8 @@ resume-v2/
     build/pages.ts           # Vite plugin resumePages(): fills the shells per language (dev + build)
     styles/tokens.css        # design tokens, font imports, fallback-font metrics
     styles/doc.css           # layout, typography, stage (letterform / contour / light strip / poster), pills, print
+    pipeline/inventory.ts    # Blender inventory JSON -> object rows, module-set totals, morph ranking, markdown
+    pipeline/morphs.ts       # the ARKit-52 vocabulary and the keep-list tiers the morph budget is priced at
   scripts/
     precompress.mjs          # brotli sidecars for every compressible file in dist/
     budget.mjs               # gz9 gates over dist/, entry purity, no inlined fonts, RU document, recruiter gate
@@ -80,10 +82,14 @@ resume-v2/
     pipeline/paths.ts        # tool and raw-data locations, every one overridable through the environment
     pipeline/run-blender.ts  # one headless Blender job; hands back the job's S2_ sentinel line
     pipeline/run-ue.ts       # one headless UE python job; trusts its S2_RESULT line and the files it wrote
+    pipeline/inventory.ts    # measures the whole FBX package, writes the per-file JSONs plus inventory.json/.md
+    pipeline/blender/fbxlib.py     # shared Blender helpers: import, mesh stats, bound bones, shape-key deltas, GLB JSON
+    pipeline/blender/inventory.py  # one fresh scene per FBX, one JSON per file, one sentinel line
   test/
     content.test.ts  render.test.ts  shell.test.ts  pdf.test.ts  icons.test.ts  pills.test.ts
     paths.test.ts            # path defaults and environment overrides
     repo.test.ts             # the guard: no licensed binary is ever tracked by git
+    inventory.test.ts        # the inventory summary arithmetic and the morph keep-list tiers
 ```
 
 ## Gates
