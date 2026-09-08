@@ -1,0 +1,12 @@
+[
+ {"file":"SK_MechanicGirl_03.fbx","import_s":0.4,
+  "armature":{"bone_count":4,"deform_count":4,"bones":[["root",null,true],["pelvis","root",true],["head","pelvis",true],["ik_hand_root","root",true]]},
+  "meshes":{
+   "SK_MECHANICGIRL_HEAD":{"verts":10,"edges":0,"loops":0,"polys":0,"eval_tris":16,"eval_verts":10,"uv_layers":["DiffuseUV"],"color_attributes":[["colorSet0","CORNER","BYTE_COLOR"]],"material_slots":["MAT_HEAD"],"modifiers":[["ARMATURE","Armature"]],"bound_bones":["head"],
+     "shape_keys":[{"name":"jawOpen","max_delta_m":0.021,"mean_delta_m":0.002,"moved_verts":6,"relative_key":"Basis","mute":false},{"name":"tongueOut","max_delta_m":0.0004,"mean_delta_m":0.0,"moved_verts":1,"relative_key":"Basis","mute":false}],
+     "images":[["T_HEAD_F_BaseColor_06","T_HEAD_F_BaseColor_06.png",true,"sRGB"]]},
+   "SK_MECHANICGIRL_HAIR_LOOSE":{"verts":20,"edges":0,"loops":0,"polys":0,"eval_tris":30,"eval_verts":20,"uv_layers":["map1"],"color_attributes":[],"material_slots":["MAT_HAIR"],"modifiers":[],"bound_bones":["head","pelvis"],"shape_keys":[],"images":[]}
+  }},
+ {"file":"SeparatedMesh/SK_MECHANICGIRL_HEAD.fbx","import_s":0.2,"armature":{"bone_count":2,"deform_count":2,"bones":[["root",null,true],["head","root",true]]},
+  "meshes":{"SK_MECHANICGIRL_HEAD":{"verts":10,"edges":0,"loops":0,"polys":0,"eval_tris":16,"eval_verts":10,"uv_layers":["DiffuseUV"],"color_attributes":[],"material_slots":["MAT_HEAD"],"modifiers":[],"bound_bones":["head"],"shape_keys":[],"images":[]}}}
+]

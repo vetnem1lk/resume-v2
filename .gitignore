@@ -2,6 +2,7 @@
 node_modules/
 dist/
 *.tsbuildinfo
+__pycache__/
 
 # 3D assets never enter this public repo (licensed content is served out of repo)
 *.glb
@@ -24,3 +25,7 @@ lighthouse/
 .env
 .env.*
 *.log
+
+# Pipeline viewer assets and screenshots (licensed content, never tracked)
+tools/assets/
+tools/**/*.png
