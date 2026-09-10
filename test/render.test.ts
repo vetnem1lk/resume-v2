@@ -6,6 +6,7 @@ import { ru } from '../src/content/ru.ts';
 import { CV_FILES } from '../src/content/shared.ts';
 import { SECTION_IDS } from '../src/content/types.ts';
 import { escape, renderBody, renderHead } from '../src/dom/render.ts';
+import { ANCHOR_Y } from '../src/scene/sections.ts';
 
 describe.each([en, ru])('render $lang', (c) => {
   const body = renderBody(c);
@@ -14,6 +15,10 @@ describe.each([en, ru])('render $lang', (c) => {
   test('eight sections in D5 order', () => {
     const ids = [...body.matchAll(/<section[^>]*\bid="([a-z]+)"/g)].map((m) => m[1]);
     expect(ids).toEqual([...SECTION_IDS]);
+  });
+  test('every section carries its camera anchor height', () => {
+    const anchors = [...body.matchAll(/<section[^>]*\bid="([a-z]+)"[^>]*\bdata-anchor="([^"]+)"/g)].map((m) => [m[1], Number(m[2])]);
+    expect(anchors).toEqual(SECTION_IDS.map((id) => [id, ANCHOR_Y[id]]));
   });
   test('exactly one h1, h2 per section after the header', () => {
     expect(body.match(/<h1\b/g)).toHaveLength(1);

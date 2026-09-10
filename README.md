@@ -68,12 +68,13 @@ resume-v2/
     content/types.ts         # Content shape + SECTION_IDS
     content/shared.ts        # language-independent facts: CV files + bytes, profile URLs, origin
     content/en.ts  content/ru.ts
-    dom/render.ts            # Content -> { head, body } HTML strings, escaped
+    dom/render.ts            # Content -> { head, body } HTML strings, escaped; data-anchor on sections
     dom/icons.ts             # inline SVG sprite: vk, telegram, github, gmail (simple-icons), download (Phosphor)
     dom/pills.ts             # IntersectionObserver -> aria-current on the anchor nav; pure helper mostVisible()
     scene/pchip.ts           # monotone cubic (PCHIP) interpolation for the camera anchor table;
                              # sanitizeKeys for live-measured keys
     scene/spiral.ts          # closed-form camera spiral: u -> position and look target, section keys land exactly (D4)
+    scene/sections.ts        # ANCHOR_Y per section, the measured scroll keys (landing / centre rule), the DOM read
     build/pages.ts           # Vite plugin resumePages(): fills the shells per language (dev + build)
     styles/tokens.css        # design tokens, font imports, fallback-font metrics
     styles/doc.css           # layout, typography, stage (letterform / contour / light strip / poster), pills, print
@@ -107,6 +108,7 @@ resume-v2/
     content.test.ts  render.test.ts  shell.test.ts  pdf.test.ts  icons.test.ts  pills.test.ts
     pchip.test.ts            # every key hit exactly, monotone with no overshoot, the clamps and the key sanitiser
     spiral.test.ts           # every key lands exactly, the orbit is monotone, both eye rules, the clamps and the lag
+    sections.test.ts         # the anchor table, both key rules on a hand-written layout, the collapsed-section guard
     paths.test.ts            # path defaults and environment overrides
     repo.test.ts             # the guard: no licensed binary is ever tracked by git
     inventory.test.ts        # the inventory summary arithmetic and the morph keep-list tiers

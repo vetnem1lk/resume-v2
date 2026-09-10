@@ -6,6 +6,7 @@ import type { Achievement, Content, Job, Link, Project, SectionId } from '../con
 import { SECTION_IDS } from '../content/types.ts';
 import type { IconId } from './icons.ts';
 import { renderSprite } from './icons.ts';
+import { ANCHOR_Y } from '../scene/sections.ts';
 
 export function escape(s: string): string {
   return s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
@@ -57,6 +58,8 @@ function strip(c: Content): string {
 // in flow, and ahead of the document it filled the whole first screen with decoration,
 // leaving the name and role to the strip alone. Fixed on wide screens, where document
 // order does not reach the layout.
+// Every section carries `data-anchor`, the body height the camera frames there (design SSoT
+// D4); the scroll keys themselves are measured at runtime, never written into the markup.
 // Paint (fill, stroke, colour) is applied from doc.css: var() inside an SVG presentation
 // attribute is not guaranteed to resolve, CSS rules are, and CSS beats the attribute.
 // The letterform is an outline, not live <text>: Chrome records SVG text as a
@@ -85,11 +88,11 @@ function pills(c: Content): string {
 }
 
 const block = (id: Exclude<SectionId, 'top'>, c: Content, inner: string) =>
-  `<section class="block" id="${id}" aria-labelledby="h-${id}"><h2 class="block__head" id="h-${id}">${e(c.ui.sections[id])}</h2>${inner}</section>`;
+  `<section class="block" id="${id}" data-anchor="${ANCHOR_Y[id]}" aria-labelledby="h-${id}"><h2 class="block__head" id="h-${id}">${e(c.ui.sections[id])}</h2>${inner}</section>`;
 
 function header(c: Content): string {
   const meta = c.header.meta.map((m, i) => `<li${i === 0 ? ' class="meta--level"' : ''}>${e(m)}</li>`).join('');
-  return `<section class="block block--top" id="top"><h1>${e(c.header.name)}</h1><p class="role">${e(c.header.role)}</p><ul class="meta">${meta}</ul></section>`;
+  return `<section class="block block--top" id="top" data-anchor="${ANCHOR_Y.top}"><h1>${e(c.header.name)}</h1><p class="role">${e(c.header.role)}</p><ul class="meta">${meta}</ul></section>`;
 }
 
 function project(p: Project): string {
