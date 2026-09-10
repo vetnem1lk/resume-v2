@@ -56,11 +56,12 @@ check('no em-dash in either document', !/—/.test(html + ruHtml));
 // removes scripts only, so what passes here is what a visitor with JS off gets.
 const RECRUITER = [
   // [^<] so an empty element does not pass on its own closing tag; the proof needs a
-  // sentence, not a word, hence the 80 characters of uninterrupted text.
+  // sentence, not a word, hence the 80 characters of uninterrupted text. The CV button
+  // carries interaction attributes after the download, which stay outside the match.
   ['name', /<h1[^>]*>\s*[^<\s]/],
   ['role', /class="role"[^>]*>\s*[^<\s]/],
   ['proof', /<p class="profile">[^<]{80}/],
-  ['one-click CV', /<a class="cv-button" href="\/cv\/[^"]+\.pdf" download>/],
+  ['one-click CV', /<a class="cv-button" href="\/cv\/[^"]+\.pdf" download[^>]*>/],
 ];
 for (const [doc, src] of [['index.html', html], ['ru/index.html', ruHtml]]) {
   const missing = RECRUITER.filter(([, re]) => !re.test(src)).map(([label]) => label);

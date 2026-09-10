@@ -68,7 +68,8 @@ resume-v2/
     content/types.ts         # Content shape + SECTION_IDS
     content/shared.ts        # language-independent facts: CV files + bytes, profile URLs, origin
     content/en.ts  content/ru.ts
-    dom/render.ts            # Content -> { head, body } HTML strings, escaped; data-anchor on sections
+    dom/render.ts            # Content -> { head, body } HTML strings, escaped;
+                             # data-anchor on sections, data-beat on clickables, external links in a new tab
     dom/icons.ts             # inline SVG sprite: vk, telegram, github, gmail (simple-icons), download (Phosphor)
     dom/pills.ts             # IntersectionObserver -> aria-current on the anchor nav; pure helper mostVisible()
     scene/pchip.ts           # monotone cubic (PCHIP) interpolation for the camera anchor table;
@@ -78,6 +79,9 @@ resume-v2/
     scroll/progress.ts       # scroll progress, camera-settle detection and damping - pure
     scroll/driver.ts         # rAF driver: reads scrollY first, dirty-flag layout, snap on hashchange, visibility resync
     scroll/media.ts          # reduced-motion and fine-pointer queries
+    beat/bus.ts              # BEATS vocabulary, Beat, BeatBus (one EventTarget, one event type), the page bus
+    beat/clicks.ts           # click delegation: plain-activation filter, the 600 ms hold with a synthetic-click replay
+    beat/scroll.ts           # scroll beats from raw u: arrivals both ways, teleport, edges with hysteresis, fling - pure
     build/pages.ts           # Vite plugin resumePages(): fills the shells per language (dev + build)
     styles/tokens.css        # design tokens, font imports, fallback-font metrics
     styles/doc.css           # layout, typography, stage (letterform / contour / light strip / poster), pills, print
@@ -113,6 +117,9 @@ resume-v2/
     spiral.test.ts           # every key lands exactly, the orbit is monotone, both eye rules, the clamps and the lag
     sections.test.ts         # the anchor table, both key rules on a hand-written layout, the collapsed-section guard
     progress.test.ts         # the clamps and the NaN guards, the settle hold, frame-rate-independent damping
+    bus.test.ts              # the closed vocabulary, named and wildcard delivery, signal unsubscribe, nesting order
+    clicks.test.ts           # the click decisions without a DOM: plain activation, holdable links, the hold clamp
+    scroll-beats.test.ts     # arrivals both ways, one arrival on a teleport, edge hysteresis, the fling window
     paths.test.ts            # path defaults and environment overrides
     repo.test.ts             # the guard: no licensed binary is ever tracked by git
     inventory.test.ts        # the inventory summary arithmetic and the morph keep-list tiers

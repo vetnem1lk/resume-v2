@@ -1,6 +1,7 @@
 // The render contract: eight sections in the locked order, one h1, a fast path in
 // the first bytes, every link labelled, both languages, no em-dash in the output.
 import { describe, expect, test } from 'vitest';
+import { BEATS } from '../src/beat/bus.ts';
 import { en } from '../src/content/en.ts';
 import { ru } from '../src/content/ru.ts';
 import { CV_FILES } from '../src/content/shared.ts';
@@ -52,6 +53,21 @@ describe.each([en, ru])('render $lang', (c) => {
     for (const m of body.matchAll(/<a\b([^>]*)>([\s\S]*?)<\/a>/g)) {
       const text = m[2].replace(/<[^>]+>/g, '').trim();
       expect(text.length > 0 || /aria-label="[^"]+"/.test(m[1])).toBe(true);
+    }
+  });
+  test('every data-beat sits on an anchor and is in the vocabulary', () => {
+    const names = [...body.matchAll(/<a\b[^>]*\bdata-beat="([^"]+)"/g)].map((m) => m[1]);
+    expect(names.length).toBeGreaterThan(12);
+    expect(names.filter((n) => !(BEATS as readonly string[]).includes(n))).toEqual([]);
+    expect(body.match(/<(?!a\b)[a-z]+\b[^>]*\bdata-beat=/g)).toBeNull();
+    expect(names.filter((n) => n.startsWith('nav:'))).toEqual(SECTION_IDS.map((id) => `nav:${id}`));
+  });
+  test('external links open in a new tab, in-page and download links do not', () => {
+    for (const m of body.matchAll(/<a\b([^>]*)>/g)) {
+      const attrs = m[1];
+      const href = /href="([^"]+)"/.exec(attrs)?.[1] ?? '';
+      const external = /^https?:\/\//.test(href) && !href.startsWith('https://resume.cryzothic.tech');
+      expect(attrs.includes('target="_blank"')).toBe(external);
     }
   });
   test('no em-dash, no phone', () => {
