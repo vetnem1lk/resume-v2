@@ -78,9 +78,9 @@ test('a fling arms above the threshold and releases below 60 percent of it', () 
   const a = step(0.3, 0.31, 1 / 60);            // 0.6 u/s
   expect(names(a.beats)).toEqual(['scroll:fling']);
   expect(a.beats[0].data?.direction).toBe(1);
-  const b = scrollBeats(a.state, 0.316, 1 / 60, KEYS, 0); // 0.36 u/s: still flinging
+  const b = scrollBeats(a.state, 0.3145, 1 / 60, KEYS, 0); // 0.27 u/s: under the threshold, carried by the hysteresis
   expect(b.state.flinging).toBe(true);
-  const c = scrollBeats(b.state, 0.318, 1 / 60, KEYS, 0); // 0.12 u/s: released
+  const c = scrollBeats(b.state, 0.3165, 1 / 60, KEYS, 0); // 0.12 u/s: under 60 % of the threshold, released
   expect(c.state.flinging).toBe(false);
 });
 
