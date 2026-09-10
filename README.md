@@ -38,7 +38,7 @@ JavaScript disabled; the 3D scene on top of it is a progressive enhancement.
 
 | entry JS | entry CSS | document |
 | -------- | --------- | -------- |
-| 437 B    | 3 669 B   | 5 690 B  |
+| 437 B    | 3 724 B   | 5 858 B  |
 
 Every number is gzip level 9 over the built file (`zlib.gzipSync(buf, { level: 9 }).length`),
 never the build log's column; `budget.json` carries each one rounded up to the next kibibyte
