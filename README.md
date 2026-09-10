@@ -75,6 +75,9 @@ resume-v2/
                              # sanitizeKeys for live-measured keys
     scene/spiral.ts          # closed-form camera spiral: u -> position and look target, section keys land exactly (D4)
     scene/sections.ts        # ANCHOR_Y per section, the measured scroll keys (landing / centre rule), the DOM read
+    scroll/progress.ts       # scroll progress, camera-settle detection and damping - pure
+    scroll/driver.ts         # rAF driver: reads scrollY first, dirty-flag layout, snap on hashchange, visibility resync
+    scroll/media.ts          # reduced-motion and fine-pointer queries
     build/pages.ts           # Vite plugin resumePages(): fills the shells per language (dev + build)
     styles/tokens.css        # design tokens, font imports, fallback-font metrics
     styles/doc.css           # layout, typography, stage (letterform / contour / light strip / poster), pills, print
@@ -109,6 +112,7 @@ resume-v2/
     pchip.test.ts            # every key hit exactly, monotone with no overshoot, the clamps and the key sanitiser
     spiral.test.ts           # every key lands exactly, the orbit is monotone, both eye rules, the clamps and the lag
     sections.test.ts         # the anchor table, both key rules on a hand-written layout, the collapsed-section guard
+    progress.test.ts         # the clamps and the NaN guards, the settle hold, frame-rate-independent damping
     paths.test.ts            # path defaults and environment overrides
     repo.test.ts             # the guard: no licensed binary is ever tracked by git
     inventory.test.ts        # the inventory summary arithmetic and the morph keep-list tiers
