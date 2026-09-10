@@ -241,7 +241,12 @@ a {
   width: 60vw;
   color: var(--ink);
   opacity: .16;
-  transform: translate(-50%, -50%);
+  /* The scroll rig writes --mark-rotate / --mark-rise / --mark-scale per frame (src/scene/letterform.ts);
+     without JavaScript the defaults are the identity and the mark stays a static watermark. */
+  transform:
+    translate(-50%, calc(-50% - var(--mark-rise, 0) * 100vh))
+    rotate(var(--mark-rotate, 0deg))
+    scale(var(--mark-scale, 1));
 }
 
 .stage__letterform path { fill: url(#hatch-vk); }
@@ -286,12 +291,16 @@ a {
     margin: 0;
   }
 
-  /* Rotated, so the element's width is the mark's visual height: 43vw reads as ~73 %
-     of the stage, the proportion the founder reference holds. */
+  /* Unrotated at the top, so the mark reads as the initials it is (taste round 2026-09-07); the
+     scroll rig turns it toward -90deg on the way down, which is where S1 had it pinned. 43vw is
+     the mark's visual width here, and it bleeds off the left edge on purpose. */
   .stage__letterform {
     left: 0;
     width: 43vw;
-    transform: translateY(-50%) rotate(-90deg);
+    transform:
+      translateY(calc(-50% - var(--mark-rise, 0) * 100vh))
+      rotate(var(--mark-rotate, 0deg))
+      scale(var(--mark-scale, 1));
   }
 }
 

@@ -76,6 +76,8 @@ resume-v2/
                              # sanitizeKeys for live-measured keys
     scene/spiral.ts          # closed-form camera spiral: u -> position and look target, section keys land exactly (D4)
     scene/sections.ts        # ANCHOR_Y per section, the measured scroll keys (landing / centre rule), the DOM read
+    scene/letterform.ts      # parallax pose of the hatched mark (turn, rise, zoom) - pure;
+                             # letterformVars() are the CSS custom properties doc.css composes into the transform
     scroll/progress.ts       # scroll progress, camera-settle detection and damping - pure
     scroll/driver.ts         # rAF driver: reads scrollY first, dirty-flag layout, snap on hashchange, visibility resync
     scroll/media.ts          # reduced-motion and fine-pointer queries
@@ -84,7 +86,8 @@ resume-v2/
     beat/scroll.ts           # scroll beats from raw u: arrivals both ways, teleport, edges with hysteresis, fling - pure
     build/pages.ts           # Vite plugin resumePages(): fills the shells per language (dev + build)
     styles/tokens.css        # design tokens, font imports, fallback-font metrics
-    styles/doc.css           # layout, typography, stage (letterform / contour / light strip / poster), pills, print
+    styles/doc.css           # layout, typography, stage (letterform / contour / light strip / poster), pills, print;
+                             # the letterform transform composes the rig's custom properties, identity without JS
     pipeline/inventory.ts    # Blender inventory JSON -> object rows, module-set totals, morph ranking, markdown
     pipeline/morphs.ts       # the ARKit-52 vocabulary and the keep-list tiers the morph budget is priced at
     pipeline/vram.ts         # exact morph-texture VRAM: the RGBA32F row wrap the naive verts*slots*16*N misses
@@ -116,6 +119,7 @@ resume-v2/
     pchip.test.ts            # every key hit exactly, monotone with no overshoot, the clamps and the key sanitiser
     spiral.test.ts           # every key lands exactly, the orbit is monotone, both eye rules, the clamps and the lag
     sections.test.ts         # the anchor table, both key rules on a hand-written layout, the collapsed-section guard
+    letterform.test.ts       # the identity at the top, the clamped ends, monotone turn and rise, the fixed-decimal vars
     progress.test.ts         # the clamps and the NaN guards, the settle hold, frame-rate-independent damping
     bus.test.ts              # the closed vocabulary, named and wildcard delivery, signal unsubscribe, nesting order
     clicks.test.ts           # the click decisions without a DOM: plain activation, holdable links, the hold clamp
