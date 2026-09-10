@@ -26,7 +26,10 @@ export default defineConfig({
     // two cyrillic-ext files (2 028 B and 2 264 B) into the render-blocking stylesheet
     // and defeat unicode-range for every visitor. 0 = never inline anything.
     assetsInlineLimit: 0,
-    // No dynamic import in this slice, so the modulepreload polyfill is dead weight.
+    // The only dynamic import is the debug overlay behind `import.meta.env.DEV`, which is replaced
+    // by `false` at build time: no chunk is emitted and the entry carries no preload helper. Keep
+    // the polyfill off when S4 adds a real island: measured, `{ polyfill: true }` costs more
+    // entry bytes than `{ polyfill: false }`, not fewer.
     modulePreload: { polyfill: false },
   },
   test: { include: ['test/**/*.test.ts'] },

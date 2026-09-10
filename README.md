@@ -64,7 +64,7 @@ resume-v2/
     favicon.svg              # "VK" monogram in oxide on paper
     robots.txt
   src/
-    main.ts                  # progressive enhancement entry: ?lang= redirect, active pill
+    main.ts                  # progressive enhancement entry: ?lang= redirect, active pill, dev-only ?debug overlay import
     content/types.ts         # Content shape + SECTION_IDS
     content/shared.ts        # language-independent facts: CV files + bytes, profile URLs, origin
     content/en.ts  content/ru.ts
@@ -84,6 +84,8 @@ resume-v2/
     beat/bus.ts              # BEATS vocabulary, Beat, BeatBus (one EventTarget, one event type), the page bus
     beat/clicks.ts           # click delegation: plain-activation filter, the 600 ms hold with a synthetic-click replay
     beat/scroll.ts           # scroll beats from raw u: arrivals both ways, teleport, edges with hysteresis, fling - pure
+    debug/overlay.ts         # ?debug overlay (dev server only): measured section keys, the camera spiral;
+                             # the scroll driver, the letterform parallax and the beat log drawn over the page
     build/pages.ts           # Vite plugin resumePages(): fills the shells per language (dev + build)
     styles/tokens.css        # design tokens, font imports, fallback-font metrics
     styles/doc.css           # layout, typography, stage (letterform / contour / light strip / poster), pills, print;
@@ -96,7 +98,8 @@ resume-v2/
                              # on-disk size, the JSON/BIN chunk split and the brotli-11 transfer size
   scripts/
     precompress.mjs          # brotli sidecars for every compressible file in dist/
-    budget.mjs               # gz9 gates over dist/, entry purity, no inlined fonts, RU document, recruiter gate
+    budget.mjs               # gz9 gates over dist/, entry purity, no inlined fonts, orphan-chunk check;
+                             # RU document, recruiter gate
     smoke.mjs                # every reachable URL answers with the right type
     nojs.mjs                 # writes dist-nojs/ = dist/ with every <script> removed (the Lighthouse "JS disabled" target)
     pipeline/paths.ts        # tool and raw-data locations, every one overridable through the environment
@@ -142,7 +145,7 @@ resume-v2/
 
 - `npm test` - unit tests (content invariants, render contract, PDF bytes, nav helper)
 - `npm run lint` / `npm run typecheck`
-- `npm run build` then `npm run gate` - gz9 byte budget from `budget.json`, entry purity, both documents present,
+- `npm run build` then `npm run gate` - gz9 byte budget from `budget.json`, entry purity, no orphan chunk, both documents present,
   and the recruiter gate in markup: name, role, one proof and a one-click CV button in each document
 - `npm run nojs` then `npx vite preview --outDir dist-nojs` - the document with every script removed, the target of the Lighthouse >= 95 audit
 - `npm run smoke -- http://localhost:4173 --local` - every reachable URL answers with the right type
@@ -153,6 +156,17 @@ The character is the "Mechanic Girl" model by IdaFaber (licensed content). The s
 only an optimised runtime subset of it; the asset is not part of this repository and may not
 be extracted or reused outside this site. The asset pipeline (FBX to glTF optimisation,
 KTX2 textures, meshopt), the scroll choreography, the gaze rig and the loader are my own work.
+
+## Scroll rig
+
+The camera is a read-only function of the document scroll. `src/scene/` holds the pure
+mathematics (a monotone anchor interpolant, the closed-form spiral, the section anchor table
+whose scroll keys are measured from the live layout), `src/scroll/` the frame driver (scroll
+progress, camera settle, damping), and `src/beat/` the interaction bus that the character
+subscribes to (clicks on `data-beat` anchors, with a bounded hold before external links open,
+and scroll-derived beats). Every motion is a pure pose function of the frame; the page's
+letterform, for instance, turns and rises with the camera through three CSS custom properties.
+None of it imports three.js. In development, `/?debug` draws the whole rig over the page.
 
 ## Asset pipeline
 
