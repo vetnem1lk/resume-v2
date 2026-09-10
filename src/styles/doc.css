@@ -203,7 +203,7 @@ a {
 /* 3. Stage ---------------------------------------------------------------------- */
 /* Decoration only (aria-hidden in the markup): the hatched letterform, the contour
    field, the light strip and the box the scene occupies from S2 on. Fixed behind the
-   document on wide screens, a full-height poster in flow on narrow ones, where it
+   document on wide screens, a shallow poster band in flow on narrow ones, where it
    follows the header block so the name, role and meta hold the first screen. In flow it
    is a child of .doc, hence the negative inline margin: the poster is full-bleed, the
    text column is not. z-index is -1, not 0, because .doc is a stacking context
@@ -218,7 +218,8 @@ a {
 
   position: relative;
   z-index: -1;
-  height: calc(100svh - var(--strip-h));
+  /* A band, not a hero: the proof paragraph lands above the fold on a phone (taste round 2026-09-07). */
+  height: 32svh;
   margin: 0 -1.25rem;
   overflow: hidden;
   pointer-events: none;
@@ -252,7 +253,8 @@ a {
 .stage__letterform path { fill: url(#hatch-vk); }
 
 /* The page's only gradient. Blurred, so it reads as light falling through the scene
-   rather than as a coloured bar. */
+   rather than as a coloured bar. The cool and warm ends are a damped dispersion: enough
+   for the eye to read light, too little for it to name a colour (taste round 2026-09-07). */
 .stage__light {
   position: absolute;
   top: -4%;
@@ -264,9 +266,9 @@ a {
   background: linear-gradient(
     180deg,
     rgb(255 252 248 / 0) 0%,
-    rgb(255 253 250 / .9) 20%,
-    rgb(255 246 240 / .96) 48%,
-    rgb(255 252 249 / .85) 76%,
+    rgb(233 245 250 / .86) 22%,
+    rgb(255 250 243 / .96) 50%,
+    rgb(246 238 252 / .86) 78%,
     rgb(255 252 248 / 0) 100%
   );
   filter: blur(7px);
@@ -784,6 +786,13 @@ h1 {
     margin-bottom: 8mm;
     padding: 0;
     break-inside: avoid;
+  }
+
+  /* The view-timeline reveal must never leave a printed section blank. */
+  .block > * {
+    animation: none !important;
+    opacity: 1 !important;
+    translate: none !important;
   }
 
   h1,
