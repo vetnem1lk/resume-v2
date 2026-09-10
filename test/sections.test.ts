@@ -22,9 +22,17 @@ test('landing keys are where an anchor click lands, in section order', () => {
   const keys = sectionKeys(BOXES, LAYOUT);
   expect(keys.map((k) => k.id)).toEqual([...SECTION_IDS]);
   expect(keys[1].u).toBeCloseTo((56 + 900 - 88) / 6356, 12);
-  expect(keys[0].u).toBeLessThan(0);   // the header starts under the strip: before the first scroll
+  expect(keys[0].u).toBe(0);   // the header starts under the strip: the browser clamps that click to 0
   expect(keys.at(-1)!.u).toBeCloseTo((56 + 7 * 900 - 88) / 6356, 12);
   keys.forEach((k) => expect(k.y).toBe(ANCHOR_Y[k.id]));
+});
+
+test('a landing beyond the scrollable range clamps to the bound the browser stops at', () => {
+  // A range shorter than the blocks it holds: every landing past the end collapses onto the bottom.
+  const short = sectionKeys(BOXES, { range: 1000, viewport: 900 });
+  expect(short.at(-1)!.u).toBe(1);
+  // Clamped keys are no longer strictly increasing, so sanitizeKeys drops the later of a pair.
+  expect(short.map((k) => k.id)).toEqual(['top', 'profile', 'projects']);
 });
 
 test('centre keys are where the section centre crosses the viewport centre', () => {

@@ -25,10 +25,29 @@ test('a stationary frame emits nothing', () => {
 });
 
 test('a key crossed forward is crossed back when the scroll reverses', () => {
-  const a = step(0.39, 0.4);
+  const a = step(0.39, 0.41);
   const b = scrollBeats(a.state, 0.39, 0.5, KEYS, 0);
   expect(a.beats.map((x) => [x.name, x.data?.section, x.data?.direction])).toEqual([['scroll:arrive', 'projects', 1]]);
   expect(b.beats.map((x) => [x.name, x.data?.section, x.data?.direction])).toEqual([['scroll:arrive', 'projects', -1]]);
+});
+
+test('a key the frame ends on is emitted once, whether the reader continues or reverses', () => {
+  const on = step(0.39, 0.4);                       // the frame stops exactly on the projects key
+  expect(on.beats.map((x) => [x.data?.section, x.data?.direction])).toEqual([['projects', 1]]);
+  expect(scrollBeats(on.state, 0.39, 0.5, KEYS, 0).beats).toEqual([]);
+  expect(scrollBeats(on.state, 0.41, 0.5, KEYS, 0).beats).toEqual([]);
+});
+
+test('a backward frame ending on a key arrives there, and the frame leaving it emits nothing', () => {
+  const a = step(0.41, 0.4);
+  expect(a.beats.map((x) => [x.data?.section, x.data?.direction])).toEqual([['projects', -1]]);
+  expect(scrollBeats(a.state, 0.39, 0.5, KEYS, 0).beats).toEqual([]);
+});
+
+test('a backward teleport arrives at the key it lands on, not the one above it', () => {
+  const { beats } = step(0.99, 0.4);
+  expect(names(beats)).toEqual(['scroll:arrive']);
+  expect([beats[0].data?.section, beats[0].data?.direction]).toEqual(['projects', -1]);
 });
 
 test('a slow scroll across two keys arrives at both, in scroll order, with no fling', () => {

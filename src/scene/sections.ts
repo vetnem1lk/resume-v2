@@ -1,7 +1,8 @@
 // The camera anchor table (design SSoT section 2, D4): the body height each section frames, and
 // the scroll progress at which the camera reaches it. Heights are constants; the keys are MEASURED
 // from the live document (block heights overflow, the strip is in flow, the mobile layout has no
-// svh table), never derived from CSS. offsetTop is not used: it is relative to .doc.
+// svh table), never derived from CSS. offsetTop is not used: it is relative to .doc. A landing key
+// is clamped to the scrollable range, so two on the same bound collapse and sanitizeKeys drops the later.
 import { SECTION_IDS, type SectionId } from '../content/types.ts';
 import { sanitizeKeys } from './pchip.ts';
 
@@ -26,8 +27,9 @@ export interface Layout {
   readonly viewport: number;
 }
 
-/** 'landing': the scroll position an anchor-pill click lands on; 'centre': the section centre
- *  crossing the viewport centre. Founder call (Q4); the default is the landing rule. */
+/** 'landing': the scroll position an anchor-pill click lands on, clamped to the scrollable range
+ *  because the browser clamps scrollTo; 'centre': the section centre crossing the viewport centre.
+ *  Founder call (Q4); the default is the landing rule. */
 export type KeyRule = 'landing' | 'centre';
 
 export interface SectionKey {
@@ -36,10 +38,15 @@ export interface SectionKey {
   readonly y: number;
 }
 
+/** The browser stops at the ends of the scrollable range, so a landing key does too. */
+const clamp = (v: number, lo: number, hi: number): number => (v < lo ? lo : v > hi ? hi : v);
+
 export function sectionKeys(boxes: readonly SectionBox[], layout: Layout, rule: KeyRule = 'landing'): SectionKey[] {
   if (!(layout.range > 0)) return [];
   const at = (b: SectionBox): number =>
-    rule === 'landing' ? b.top - b.scrollMargin : b.top + b.height / 2 - layout.viewport / 2;
+    rule === 'landing'
+      ? clamp(b.top - b.scrollMargin, 0, layout.range)
+      : b.top + b.height / 2 - layout.viewport / 2;
   return sanitizeKeys(boxes.map((b) => ({ id: b.id, u: at(b) / layout.range, y: ANCHOR_Y[b.id] })));
 }
 

@@ -57,9 +57,9 @@ export function scrollBeats(
   if (flinging && !prev.flinging) scroll('scroll:fling', { direction: velocity > 0 ? 1 : -1, velocity });
 
   const forward = u > prev.u;
-  // Both predicates half-open on the same side, or a key landed on exactly is consumed forward
-  // and skipped coming back.
-  const crossed = keys.filter((k) => (forward ? prev.u < k.u && k.u <= u : u < k.u && k.u <= prev.u));
+  // Inclusive at the frame's destination end and exclusive at its origin, in both directions: a key
+  // sitting on a frame boundary is emitted once, whether the reader continues or reverses.
+  const crossed = keys.filter((k) => (forward ? prev.u < k.u && k.u <= u : u <= k.u && k.u < prev.u));
   const ordered = crossed.toSorted((a, b) => (forward ? a.u - b.u : b.u - a.u));
   const arrivals = teleport ? ordered.slice(-1) : ordered;
   for (const key of arrivals) scroll('scroll:arrive', { section: key.id, direction: forward ? 1 : -1, velocity });
