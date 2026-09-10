@@ -30,6 +30,8 @@ test('landing keys are where an anchor click lands, in section order', () => {
 test('centre keys are where the section centre crosses the viewport centre', () => {
   const keys = sectionKeys(BOXES, LAYOUT, 'centre');
   expect(keys[1].u).toBeCloseTo((56 + 900 + 450 - 450) / 6356, 12);
+  // Viewport != height, so neither half of the rule cancels: a dropped or swapped half fails here.
+  expect(sectionKeys(BOXES, { range: 6356, viewport: 300 }, 'centre')[1].u).toBeCloseTo((956 + 450 - 150) / 6356, 12);
 });
 
 test('keys stay strictly increasing and an empty range yields no keys', () => {
