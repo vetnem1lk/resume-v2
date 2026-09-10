@@ -4,7 +4,8 @@ Scroll-driven 3D resume of **Vladislav Klimentev** - C++/Qt developer moving int
 development (tools / gameplay track). The resume itself is plain HTML that works with
 JavaScript disabled; the 3D scene on top of it is a progressive enhancement.
 
-> Status: first slice shipped: the zero-JS resume.
+> Status: shipped so far - the zero-JS resume, the asset pipeline and the scroll rig;
+> the three.js island is the next slice.
 >
 > Previous site, still live: https://me.cryzothic.tech
 
@@ -143,7 +144,8 @@ resume-v2/
 
 ## Gates
 
-- `npm test` - unit tests (content invariants, render contract, PDF bytes, nav helper)
+- `npm test` - unit tests: content invariants, render contract, PDF bytes, nav helper, the pure scroll rig
+  (interpolant, spiral, section keys, letterform, progress, bus, clicks, beats) and the pipeline arithmetic
 - `npm run lint` / `npm run typecheck`
 - `npm run build` then `npm run gate` - gz9 byte budget from `budget.json`, entry purity, no orphan chunk, both documents present,
   and the recruiter gate in markup: name, role, one proof and a one-click CV button in each document
