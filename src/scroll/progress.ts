@@ -42,5 +42,8 @@ export function settleStep(
 
 /** Frame-rate independent exponential approach; the same function as three r185 MathUtils.damp. */
 export function damp(x: number, y: number, lambda: number, dt: number): number {
+  // No elapsed time, no movement. Also keeps a lambda of Infinity out of Infinity * 0, which is
+  // NaN: one such frame would poison the damped value for the life of the page.
+  if (!(dt > 0)) return x;
   return x + (y - x) * (1 - Math.exp(-lambda * dt));
 }

@@ -13,6 +13,7 @@ export interface ScrollFrame {
 
 export interface ScrollDriverOptions {
   onFrame(frame: ScrollFrame): void;
+  /** Transitions only, never an opening call: seed from the first frame's ScrollFrame.settled. */
   onSettle(settled: boolean, u: number): void;
   /** Damping rate; Infinity under reduced motion makes uSmooth follow u exactly (D8). */
   readonly lambda?: number;
@@ -42,6 +43,9 @@ export function createScrollDriver(options: ScrollDriverOptions): ScrollDriver {
   let last = 0;
   let uSmooth = 0;
   let settle: SettleState = initialSettle(0, 0);
+  // What onSettle last heard. Kept apart from settle.phase because resync() reseeds the state out
+  // of band, and a transition the consumer never heard would strand it in the phase it last saw.
+  let reported = true;
 
   // CSSOM: root scrollHeight is max(scrolling area, viewport), so the range is never negative.
   // Never innerHeight: it includes the horizontal scrollbar and tracks the visual viewport.
@@ -61,10 +65,13 @@ export function createScrollDriver(options: ScrollDriverOptions): ScrollDriver {
     last = now;
     const u = scrollProgress(y, maxScroll);
     uSmooth = damp(uSmooth, u, lambda, dt);
-    const next = settleStep(settle, u, uSmooth, now, holdMs, epsilon);
-    if (next.phase !== settle.phase) options.onSettle(next.phase === 'settled', u);
-    settle = next;
-    options.onFrame({ u, uSmooth, dt, now, settled: settle.phase === 'settled' });
+    settle = settleStep(settle, u, uSmooth, now, holdMs, epsilon);
+    const settled = settle.phase === 'settled';
+    if (settled !== reported) {
+      reported = settled;
+      options.onSettle(settled, u);
+    }
+    options.onFrame({ u, uSmooth, dt, now, settled });
   };
 
   const tick = (now: number): void => {

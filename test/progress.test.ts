@@ -63,4 +63,7 @@ test('damp is frame-rate independent and lands on the target', () => {
   expect(a).toBeCloseTo(damp(0, 1, 5, 0.1), 12);
   expect(damp(0, 1, 5, 0.2)).toBeCloseTo(1 - Math.exp(-1), 12);
   expect(damp(0, 1, Number.POSITIVE_INFINITY, 0.016)).toBe(1);
+  // A dt that is zero or not a number must hold, not poison: Infinity * 0 is NaN and never recovers.
+  expect(damp(0.4, 0.7, Number.POSITIVE_INFINITY, 0)).toBe(0.4);
+  expect(damp(0.4, 0.7, 5, Number.NaN)).toBe(0.4);
 });
