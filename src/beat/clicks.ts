@@ -2,7 +2,7 @@
 // the link. A subscriber may hold the default for up to 600 ms; the deferred default is a
 // synthetic click on the SAME anchor, which keeps its target, rel and download semantics and goes
 // through the same activation gate. Without a subscriber nothing is prevented.
-import { type Beat, type BeatBus, type BeatName } from './bus.ts';
+import type { Beat, BeatBus, BeatName } from './bus.ts';
 
 /** Above WebKit's 1 s gesture-forwarding window a deferred open is silently blocked. */
 export const MAX_HOLD_MS = 600;
