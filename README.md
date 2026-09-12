@@ -37,9 +37,9 @@ JavaScript disabled; the 3D scene on top of it is a progressive enhancement.
 
 ### Measured today
 
-| entry JS | scene chunk | entry CSS | document | character GLB |
-| -------- | ----------- | --------- | -------- | ------------- |
-| 1 391 B  | 195 784 B   | 3 724 B   | 5 856 B  | 3 728 004 B   |
+| entry JS | scene chunk | entry CSS | document EN / RU  | character GLB | poster (tall, 2x AVIF) |
+| -------- | ----------- | --------- | ----------------- | ------------- | ---------------------- |
+| 1 391 B  | 195 762 B   | 3 802 B   | 6 032 B / 6 788 B | 3 728 004 B   | 39 067 B               |
 
 The scene chunk is the whole island: three.js, the GLTF / KTX2 / meshopt loaders, the renderer,
 the character, the mirrored floor and the camera. The texture transcoder (a worker script and its
@@ -50,7 +50,9 @@ The first four are gzip level 9 over the built file (`zlib.gzipSync(buf, { level
 never the build log's column; `budget.json` carries each one rounded up to the next kibibyte
 above measured + 15 %, and `npm run gate` fails the build the moment a number passes it. The
 character is not part of the build: its column is the brotli sidecar the host serves (4 081 816 B
-on disk, 49 371 triangles and 17 embedded textures), measured by the assemble step.
+on disk, 49 371 triangles and 17 embedded textures), measured by the assemble step. The poster is
+the file the desktop `<picture>` serves at 2x, bytes on disk as `pipeline:poster` wrote it next to
+the character it was captured from.
 
 ## Repository map
 
@@ -77,7 +79,7 @@ resume-v2/
     content/types.ts         # Content shape + SECTION_IDS
     content/shared.ts        # language-independent facts: CV files + bytes, profile URLs, origin
     content/en.ts  content/ru.ts
-    dom/render.ts            # Content -> { head, body } HTML strings, escaped;
+    dom/render.ts            # Content -> { head, body } HTML strings, escaped; the static art-directed poster picture;
                              # data-anchor on sections, data-beat on clickables, external links in a new tab
     dom/icons.ts             # inline SVG sprite: vk, telegram, github, gmail (simple-icons), download (Phosphor)
     dom/pills.ts             # IntersectionObserver -> aria-current on the anchor nav; pure helper mostVisible()
@@ -118,13 +120,16 @@ resume-v2/
                              # every chosen value in LIGHTS, overridable per mount for the taste round
     island/patch.ts          # one GLSL patch helper: per-key slots composed in order, a joined program key, owned
                              # uniforms re-bound on every recompile; applied after any clone
+    island/poster.ts         # the stage class that cross-fades the poster out under the live canvas; the column's
+                             # crop rectangle (pure) and the dev-only capture of the frame on screen for pipeline:poster
     debug/overlay.ts         # ?debug overlay (dev server only): measured section keys, the camera spiral;
                              # the scroll driver, the letterform parallax and the beat log drawn over the page
     build/pages.ts           # Vite plugin resumePages(): fills the shells per language (dev + build)
     build/assets.ts          # Vite plugin assetHost(): serves the licensed subset from outside the repo at
                              # /g2/ in dev and preview, immutable header and brotli sidecars (never in build)
     styles/tokens.css        # design tokens, font imports, fallback-font metrics
-    styles/doc.css           # layout, typography, stage (letterform / contour / light strip / poster), pills, print;
+    styles/doc.css           # layout, typography, stage (letterform / contour / light strip / poster and the canvas
+                             # it cross-fades to, opacity only), pills, print;
                              # the letterform transform composes the rig's custom properties, identity without JS
     pipeline/inventory.ts    # Blender inventory JSON -> object rows, module-set totals, morph ranking, markdown
     pipeline/morphs.ts       # the ARKit-52 vocabulary, the keep-list tiers the morph budget is priced at, the shipped 24
@@ -155,6 +160,8 @@ resume-v2/
     pipeline/assemble.ts     # the served subset end to end: the Blender assemble, the look and the tier-1 KTX2 files
                              # wired onto it, meshopt, validation, one immutable build directory and the pinned block
     pipeline/gltf.ts         # opens the gltf-transform packages inside the global CLI tree and declares their shapes
+    pipeline/poster.ts       # the captured first frame into the poster set: the tall column and its head-and-shoulders
+                             # band, AVIF + WebP at 1x and 2x with alpha; refuses a capture older than the character
     pipeline/manifest.ts     # one row per served file, bytes on disk and over the wire, brotli sidecar where it helps
     pipeline/blender/fbxlib.py       # shared Blender helpers: import, the look's export hygiene and glTF flag sets,
                                      # morph pruning, mesh stats, bound bones, shape-key deltas, GLB JSON
@@ -179,6 +186,7 @@ resume-v2/
     loaders.test.ts          # the byte stream against the pinned denominator, a 404 and an offline reload, the retry
     patch.test.ts            # the patch helper on a fake material: slot order, joined keys, a repeated key, a missing chunk
     camera.test.ts           # the view offset that lands the character's axis in the poster column, the strip-x parser
+    poster.test.ts           # the poster column's crop rectangle: centred on strip-x, narrowed by the viewport, scaled by the ratio
     mirror.test.ts           # three under Node: a detached-bind twin reflects through the floor, an attached one does not
     assets.test.ts           # the asset host's path rule: the prefix, inside the root, the served types
     pchip.test.ts            # every key hit exactly, monotone with no overshoot, the clamps and the key sanitiser
@@ -264,7 +272,9 @@ produces the animation half of the byte budget the design decisions are made aga
 skeleton, bones-only export - and measures the rest-pose parity of the two rigs; `pipeline:assemble`
 builds the served subset itself - the look joined by material, the morphs cut to the shipped list,
 the idle baked onto the rig, the tier-1 textures embedded, meshopt compression, the glTF validator -
-and prints the byte counts `src/scene/assets.ts` pins.
+and prints the byte counts `src/scene/assets.ts` pins; `pipeline:poster` encodes the captured first
+frame into the poster set the document references - the tall column and its head-and-shoulders band,
+AVIF and WebP at 1x and 2x, with alpha - and refuses a capture older than the character it shows.
 
 Textures, re-measured with the corrected mip recipe (clamped edges, one resampler end to end):
 tier 1 is 3 392 136 B over the wire and 11 971 696 B resident once the GPU has it as BC7 - 8 393 B

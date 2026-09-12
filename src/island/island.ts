@@ -5,6 +5,7 @@ import { Timer, type Mesh, type Object3D, type Texture } from 'three';
 import { bus } from '../beat/bus.ts';
 import { wireClicks } from '../beat/clicks.ts';
 import { initialScrollBeatState, scrollBeats, type ScrollBeatState } from '../beat/scroll.ts';
+import { POSTER } from '../scene/assets.ts';
 import { WIDE } from '../scene/gate.ts';
 import { LETTERFORM_DEFAULTS, letterformPose, letterformVars, type LetterformParams } from '../scene/letterform.ts';
 import { INITIAL_LOAD, loadStep, type LoadState } from '../scene/loadstate.ts';
@@ -17,6 +18,7 @@ import { adoptCharacter, type Character } from './character.ts';
 import { mirrorFloor, type Floor } from './floor.ts';
 import type { Lights } from './lights.ts';
 import { detectSupport, loadCharacter } from './loaders.ts';
+import { capturePoster, LIVE, live, posterCrop } from './poster.ts';
 import { afterPending, canRender, createRenderer, dprCap, tierOf, type RendererHandle } from './renderer.ts';
 
 export interface IslandOptions {
@@ -74,7 +76,6 @@ function disposeTree(root: Object3D): void {
 function start(stage: HTMLElement, options: IslandOptions): (() => void) | null {
   const canvas = document.createElement('canvas');
   canvas.className = 'stage__canvas';
-  canvas.style.cssText = 'position:absolute;inset:0;width:100%;height:100%';
   stage.append(canvas);
   // canRender() has already refused a software renderer, so the core count alone decides the tier.
   const tier = tierOf('', navigator.hardwareConcurrency ?? 4);
@@ -121,8 +122,6 @@ function start(stage: HTMLElement, options: IslandOptions): (() => void) | null 
   const clearMark = (): void => {
     if (mark !== null) for (const name of MARK_VARS) mark.style.removeProperty(name);
   };
-  const live = (): void => { stage.classList.add('stage--live'); };
-
   /** The one-shot guard: the first throw (or a failed load) disables the 3D and leaves the poster. */
   const disable3D = (error: unknown): void => {
     if (dead) return;
@@ -235,7 +234,7 @@ function start(stage: HTMLElement, options: IslandOptions): (() => void) | null 
       }
       if (state.phase === 'warming') {
         state = loadStep(state, { type: 'frame' });
-        if (state.phase === 'live') live();
+        if (state.phase === 'live') live(stage);
       }
       if (previous !== 0) {
         gaps[frames % GAP_FRAMES] = time - previous;
@@ -271,6 +270,9 @@ function start(stage: HTMLElement, options: IslandOptions): (() => void) | null 
         }),
         gap,
         rig: () => keys,
+        // The column of the frame on screen, as pipeline:poster wants it: the canvas's CSS box is the
+        // viewport of the crop, and the backing store over that box is the pixel ratio.
+        poster: () => capturePoster(renderer, scene, camera, posterCrop({ width: canvas.clientWidth, height: canvas.clientHeight, ratio: width / canvas.clientWidth }, stripX, POSTER.width, POSTER.height)),
         params: { camera: fixed ? 'fixed' : 'spiral', spiral: { ...SPIRAL_DEFAULTS, ...options.spiral }, letterform },
       },
     });
@@ -283,7 +285,7 @@ function start(stage: HTMLElement, options: IslandOptions): (() => void) | null 
     controller.abort();
     offReduced();
     timer.dispose();
-    stage.classList.remove('stage--live');
+    stage.classList.remove(LIVE);
     clearMark();
     if (character !== null) disposeTree(character.root);
     floor?.dispose();
