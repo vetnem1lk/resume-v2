@@ -1,10 +1,11 @@
 // Texture byte budget: export the used PNG set from UE once, then resize / composite with sharp
-// and encode every planned class x size with ktx create, validate each file, sum the tier-1 pick.
+// and encode every tier-1 and tier-2 pick with ktx create, validate each file, and price both
+// tiers over the wire and as resident BC7. A finished encode is cached by its own arguments.
 import { execFileSync } from 'node:child_process';
-import { existsSync, mkdirSync, statSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { TEXTURE_PLAN, TIER1_EXCLUDE, TIER1_PICK, ktxArgs, validateArgs, type TexPlan } from '../../src/pipeline/ktx.ts';
-import { PATHS, REPO_ROOT } from './paths.ts';
+import { TEXTURE_PLAN, TIER1, TIER2, ktxArgs, manifestRow, pickFile, textureVramBytes, validateArgs, type ManifestTexture, type TexPick, type TexPlan } from '../../src/pipeline/ktx.ts';
+import { PATHS, REPO_ROOT, requireTool } from './paths.ts';
 import { runUe } from './run-ue.ts';
 
 // sharp is vendored inside the gltf-transform CLI tree, so it is loaded by URL and carries no
@@ -24,10 +25,11 @@ interface Image {
 const { default: sharp } = await import(`file:///${PATHS.gltfModules}sharp/lib/index.js`) as {
   default: (input: string | Buffer, options?: Plane) => Image;
 };
+const ktx = requireTool('ktx', PATHS.ktx, 'KTX');
 const texRoot = resolve(PATHS.raw, 'mg_textures');
-const s2 = resolve(PATHS.build, 's2');
-const outDir = resolve(s2, 'ktx2');
-const tmpDir = resolve(s2, 'tex');
+const s4 = resolve(PATHS.build, 's4');
+const outDir = resolve(s4, 'ktx2');
+const tmpDir = resolve(s4, 'tex');
 mkdirSync(outDir, { recursive: true });
 mkdirSync(tmpDir, { recursive: true });
 
@@ -37,7 +39,7 @@ const wanted = [...new Set(TEXTURE_PLAN.flatMap((p) => p.sources))];
 if (wanted.some((p) => !existsSync(png(p)))) {
   process.env.S2_TEX_OUT = texRoot.replace(/\\/g, '/');
   process.env.S2_TEX_ASSETS = wanted.join(';');
-  const r = await runUe(resolve(REPO_ROOT, 'scripts/pipeline/ue/export_textures.py'), resolve(s2, 'textures.log'), wanted.map(png));
+  const r = await runUe(resolve(REPO_ROOT, 'scripts/pipeline/ue/export_textures.py'), resolve(s4, 'textures.log'), wanted.map(png));
   console.log('UE textures:', JSON.stringify(r));
 }
 
@@ -68,30 +70,60 @@ async function prepare(p: TexPlan, dim: number): Promise<{ file: string; channel
   return { file, channels: ch };
 }
 
-const rows: { key: string; cls: string; dim: number; channels: number; srcBytes: number; ktx2Bytes: number; valid: boolean; seconds: number }[] = [];
-for (const p of TEXTURE_PLAN) {
-  for (const dim of p.dims) {
-    const t0 = Date.now();
-    const { file, channels } = await prepare(p, dim);
-    const out = resolve(outDir, `${p.key}@${dim}.ktx2`);
-    execFileSync(PATHS.ktx, ['create', ...ktxArgs(p.cls, channels), file, out], { stdio: 'pipe' });
-    execFileSync(PATHS.ktx, validateArgs(out), { stdio: 'pipe' });     // throws on exit != 0
-    rows.push({ key: p.key, cls: p.cls, dim, channels, srcBytes: statSync(file).size, ktx2Bytes: statSync(out).size, valid: true, seconds: Math.round((Date.now() - t0) / 1000) });
-    console.log(`${p.key}@${dim} ${p.cls} ${channels}ch -> ${statSync(out).size} B`);
-  }
-}
-// A pick the matrix never encoded must not contribute a silent 0: that under-reports tier 1.
-const pick = (key: string, dim: number) => {
-  const row = rows.find((r) => r.key === key && r.dim === dim);
-  if (!row) throw new Error(`no encoded row for ${key}@${dim}`);
-  return row.ktx2Bytes;
+const planOf = (key: string): TexPlan => {
+  const plan = TEXTURE_PLAN.find((p) => p.key === key);
+  if (plan === undefined) throw new Error(`no texture plan for ${key}`);
+  return plan;
 };
-const tier1Bytes = Object.entries(TIER1_PICK).filter(([k]) => !TIER1_EXCLUDE.has(k)).reduce((n, [k, d]) => n + pick(k, d), 0);
-const tier2HeadBytes = pick('head_bc', 2048);
-const summary = { rows, tier1Bytes, tier2HeadBytes, pick: TIER1_PICK };
-writeFileSync(resolve(s2, 'ktx2-budget.json'), JSON.stringify(summary, null, 1));
-const md = ['| key | class | dim | ch | PNG B | KTX2 B | tier-1 |', '|---|---|---|---|---|---|---|',
-  ...rows.map((r) => `| ${r.key} | ${r.cls} | ${r.dim} | ${r.channels} | ${r.srcBytes} | ${r.ktx2Bytes} | ${TIER1_PICK[r.key] === r.dim && !TIER1_EXCLUDE.has(r.key) ? 'x' : ''} |`),
-  '', `Tier-1 textures: ${tier1Bytes} B (${(tier1Bytes / 1e6).toFixed(2)} MB); tier-2 head BC 2048 sidecar: ${tier2HeadBytes} B`].join('\n') + '\n';
-writeFileSync(resolve(s2, 'ktx2-budget.md'), md);
+// Both tiers land in one directory; the clothes ORM appears twice (two codecs), no file twice.
+const picks: TexPick[] = [];
+for (const pick of [...TIER1, ...TIER2]) if (!picks.some((p) => pickFile(p) === pickFile(pick))) picks.push(pick);
+
+const files: ManifestTexture[] = [];
+for (const pick of picks) {
+  const t0 = Date.now();
+  const plan = planOf(pick.key);
+  const { file, channels } = await prepare(plan, pick.dim);
+  const out = resolve(outDir, pickFile(pick));
+  const args = ktxArgs(plan.cls, channels, pick.recipe);
+  // An encode runs for minutes: a finished file whose recipe, size and sources are unchanged stays.
+  const stamp = JSON.stringify({ args, dim: pick.dim, sources: plan.sources });
+  const sidecar = `${out}.args.json`;
+  const cached = existsSync(out) && existsSync(sidecar) && readFileSync(sidecar, 'utf8') === stamp;
+  if (!cached) {
+    execFileSync(ktx, ['create', ...args, file, out], { stdio: 'pipe' });
+    writeFileSync(sidecar, stamp);
+  }
+  execFileSync(ktx, validateArgs(out), { stdio: 'pipe' });   // every run, cached or not: throws on exit != 0
+  files.push(manifestRow(pick, pickFile(pick), statSync(out).size));
+  console.log(`${pickFile(pick)} ${plan.cls} ${pick.recipe} ${channels}ch -> ${statSync(out).size} B in ${((Date.now() - t0) / 1000).toFixed(1)} s${cached ? ' (cached)' : ''}`);
+}
+
+// A pick the run never encoded must not contribute a silent 0: that under-reports a tier.
+const bytesOf = (pick: TexPick): number => {
+  const row = files.find((f) => f.file === pickFile(pick));
+  if (row === undefined) throw new Error(`no encoded row for ${pickFile(pick)}`);
+  return row.bytes;
+};
+const sumBytes = (tier: readonly TexPick[]) => tier.reduce((n, p) => n + bytesOf(p), 0);
+const head2k = TIER2.find((p) => p.key === 'head_bc');
+if (head2k === undefined) throw new Error('tier 2 no longer carries a head colour map');
+// Tier 2 replaces its keys rather than adding to them: only one size of a key is ever resident.
+const swapped = new Set(TIER2.map((p) => p.key));
+const budget = {
+  tier1Bytes: sumBytes(TIER1),
+  tier2Bytes: sumBytes(TIER2),
+  tier2HeadBytes: bytesOf(head2k),
+  vram: { tier1: textureVramBytes(TIER1), tier2: textureVramBytes([...TIER1.filter((p) => !swapped.has(p.key)), ...TIER2]) },
+  files,
+};
+writeFileSync(resolve(s4, 'ktx2-budget.json'), JSON.stringify(budget, null, 1));
+const tier1Files = new Set(TIER1.map(pickFile));
+const mb = (n: number) => (n / 1e6).toFixed(2);
+const md = ['| file | key | class | recipe | dim | KTX2 B | BC7 B | tier |', '|---|---|---|---|---|---|---|---|',
+  ...files.map((f) => `| ${f.file} | ${f.key} | ${planOf(f.key).cls} | ${f.recipe} | ${f.dim} | ${f.bytes} | ${f.gpuBytes} | ${tier1Files.has(f.file) ? '1' : '2'} |`),
+  '', `Tier 1: ${budget.tier1Bytes} B (${mb(budget.tier1Bytes)} MB) over the wire, ${budget.vram.tier1} B resident at BC7.`,
+  `Tier 2 swaps: ${budget.tier2Bytes} B (${mb(budget.tier2Bytes)} MB) over the wire; with them resident the set is ${budget.vram.tier2} B at BC7.`,
+  `${files.length} files encoded and validated.`].join('\n') + '\n';
+writeFileSync(resolve(s4, 'ktx2-budget.md'), md);
 console.log(md);

@@ -111,7 +111,8 @@ resume-v2/
     pipeline/inventory.ts    # Blender inventory JSON -> object rows, module-set totals, morph ranking, markdown
     pipeline/morphs.ts       # the ARKit-52 vocabulary, the keep-list tiers the morph budget is priced at, the shipped 24
     pipeline/vram.ts         # exact morph-texture VRAM: the RGBA32F row wrap the naive verts*slots*16*N misses
-    pipeline/ktx.ts          # KTX2 encode recipe per texture class, the texture plan and the tier-1 pick
+    pipeline/ktx.ts          # KTX2 encode recipes per texture class and per tier, the texture plan, the two
+                             # tier picks and their file names, the BC7 resident-bytes formula, the manifest row
     pipeline/glb.ts          # gltf-transform accounting of a GLB: decoded bytes per mesh/morph/clip next to the
                              # on-disk size, the JSON/BIN chunk split and the brotli-11 transfer size
   scripts/
@@ -125,7 +126,8 @@ resume-v2/
     pipeline/run-ue.ts       # one headless UE python job; trusts its S2_RESULT line and the files it wrote
     pipeline/inventory.ts    # measures the whole FBX package, writes the per-file JSONs plus inventory.json/.md
     pipeline/face-proof.ts   # face proof end to end: the UE export, the two Blender jobs, the GLB copy for the viewer
-    pipeline/textures.ts     # the used PNG set out of UE, resized and composited, encoded and validated, then priced
+    pipeline/textures.ts     # the used PNG set out of UE, resized and composited, every tier pick encoded,
+                             # validated and cached by its own arguments, then both tiers priced
     pipeline/clips.ts        # measurement exports per morph tier plus the baked clips, priced into the tier-1 budget
     pipeline/clip-sources.ts # every clip's origin, licence, route onto the skeleton and measured facts; what may ship
     pipeline/ue-template.ts  # copies the engine mannequin example assets into the project, never overwriting
@@ -212,7 +214,15 @@ KTX-Software encodes textures, gltf-transform accounts the bytes. Tool locations
 the environment (`BLENDER`, `UE_CMD`, `UE_ENGINE`, `UE_PROJECT`, `KTX`, `MG_RAW`, `GLTF_MODULES`), with
 defaults for standard installs. `npm run pipeline:inventory` measures the package;
 `pipeline:face-proof` proves that facial animation curves survive the whole chain into a
-`weights` track that three.js plays (`tools/face-proof.html`); `pipeline:textures` and
-`pipeline:clips` produce the byte budget the design decisions are made against;
+`weights` track that three.js plays (`tools/face-proof.html`); `pipeline:textures` encodes both
+texture tiers - the set the loader waits for, and the four desktop swaps that replace four of its
+textures once the scene is live - and prices each tier over the wire and as resident BC7; `pipeline:clips`
+produces the animation half of the byte budget the design decisions are made against;
 `pipeline:idle` brings the engine idle onto the character skeleton - template copy, compatible
 skeleton, bones-only export - and measures the rest-pose parity of the two rigs.
+
+Textures, re-measured with the corrected mip recipe (clamped edges, one resampler end to end):
+tier 1 is 3 392 136 B over the wire and 11 971 696 B resident once the GPU has it as BC7 - 8 393 B
+(0.25 %) under the first encode of the same pick, which generated its small mips with the wrong
+wrap and filter. The four tier-2 swaps cost 2 730 007 B more and take the resident set to
+24 554 608 B: three 2K colour maps, plus the one ORM whose codec was measurably wrong at 1K.
