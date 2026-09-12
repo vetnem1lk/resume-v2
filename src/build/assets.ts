@@ -4,6 +4,7 @@
 import { createReadStream, statSync } from 'node:fs';
 import type { IncomingMessage, ServerResponse } from 'node:http';
 import { resolve, sep } from 'node:path';
+import { pipeline } from 'node:stream';
 import type { Plugin } from 'vite';
 
 export const ASSET_PREFIX = '/g2/';
@@ -52,7 +53,10 @@ function send(root: string, req: IncomingMessage, res: ServerResponse, next: () 
   const source = brotli ? `${served.file}.br` : served.file;
   res.setHeader('Content-Length', String((brotli ? sidecar : stat).size));
   if (req.method === 'HEAD') { res.end(); return; }
-  createReadStream(source).pipe(res);
+  // pipeline(), never pipe(): the deploy tree is regenerated under this server, so a read can
+  // fail after the stat (EBUSY, ENOENT) - pipe() forwards no source error and an unhandled one
+  // on a stream takes the process down. pipeline() destroys both ends; the head is already out.
+  pipeline(createReadStream(source), res, () => undefined);
 }
 
 /** The deploy directory defaults to the pipeline's output beside the repository; ASSET_ROOT
