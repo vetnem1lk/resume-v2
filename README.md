@@ -4,8 +4,8 @@ Scroll-driven 3D resume of **Vladislav Klimentev** - C++/Qt developer moving int
 development (tools / gameplay track). The resume itself is plain HTML that works with
 JavaScript disabled; the 3D scene on top of it is a progressive enhancement.
 
-> Status: shipped so far - the zero-JS resume, the asset pipeline and the scroll rig;
-> the three.js island is the next slice.
+> Status: shipped so far - the zero-JS resume, the asset pipeline, the scroll rig and the
+> three.js island that puts the character on the page.
 >
 > Previous site, still live: https://me.cryzothic.tech
 
@@ -29,9 +29,11 @@ JavaScript disabled; the 3D scene on top of it is a progressive enhancement.
 ## Performance budget (binding)
 
 - First-paint JavaScript <= 45 KB gzipped, containing no three.js
-- Scene chunk loaded on demand; the 3D asset is fetched only after the document is readable,
-  and on phones only on request
-- LCP element is the heading or the poster, never the canvas; CLS < 0.05; INP < 200 ms
+- Scene chunk <= 200 KiB (204 800 B) gzipped, loaded on demand behind a desktop gate: a wide
+  viewport, WebGL2 and no data saver. Below the breakpoint the poster is the whole scene
+- Character <= 5.0 MB over the wire for the tier the loader waits for; texture and morph VRAM
+  as measured by the pipeline
+- LCP element is the poster, never the canvas; CLS < 0.05; INP < 200 ms
 - Lighthouse >= 95 in every category for the document with JavaScript disabled
 - `prefers-reduced-motion` respected: no camera motion, no autoplay
 
@@ -47,8 +49,12 @@ script and its wasm, emitted as separate assets) is fetched by the worker only w
 arrives and is not part of that figure.
 
 The first four are gzip level 9 over the built file (`zlib.gzipSync(buf, { level: 9 }).length`),
-never the build log's column; `budget.json` carries each one rounded up to the next kibibyte
-above measured + 15 %, and `npm run gate` fails the build the moment a number passes it. The
+never the build log's column, and `npm run gate` fails the build the moment one of them passes its
+gate in `budget.json`. Those gates are not one formula: `entry-js` and `entry-css` are the
+measurement plus room to grow, rounded up to a kibibyte; `index-html` is a single 7 KiB ceiling
+both documents share, decided by the longer Russian one; `scene-js` is a ceiling chosen for the
+slice that added the island rather than a ratchet of its measurement, and it sits about 4 % above
+what the chunk weighs today, so the next feature in there has to be paid for, not absorbed. The
 character is not part of the build: its column is the brotli sidecar the host serves (4 081 816 B
 on disk, 49 371 triangles and 17 embedded textures), measured by the assemble step. The poster is
 the file the desktop `<picture>` serves at 2x, bytes on disk as `pipeline:poster` wrote it next to
@@ -178,7 +184,9 @@ resume-v2/
     pipeline/blender/measure.py      # GLB exports per morph tier and the name-keyed clip bake (the S2 measurement)
     pipeline/blender/assemble.py     # the shipped look: pruned to the shipped morphs, joined by material, the idle
                                      # baked rotation-only with a measured ground-contact offset, exported float32
-    pipeline/blender/rig_parity.py   # rest-pose parity of a clip rig against the look rig, and the rotation-only bake
+    pipeline/blender/rig_parity.py   # rest-pose parity of a clip rig against the look rig, the
+                                     # baked_translation_delta that decides whether a clip's own bone
+                                     # translations may ship, and the rotation-only bake when they may not
     pipeline/blender/llf_csv.py      # Live Link Face CSV -> shape-key f-curves, no add-on, with a synthetic self-test
     pipeline/ue/face_proof_synth.py  # synthetic ARKit clip on the idle, exported to FBX with its blend-shape curves
     pipeline/ue/export_textures.py   # the texture set of the shipped look out of UE at source resolution
@@ -222,7 +230,7 @@ resume-v2/
     fixtures/inventory-mini.json  # two hand-written FBX reports, a combine plus a module, that inventory.test.ts
                              # pins the summary arithmetic against
   tools/                     # dev-server pages, never bundled and outside tsconfig: they may resolve bare `three`
-                             # through node_modules; "three only under src/island/" is a rule about the bundle.
+                             # through node_modules; the source-purity gate walks src/, and these are not in it.
     tier1-proof.html         # render proof of the assembled character: plays the Idle off the asset host and reads
                              # draw calls, triangles, skins and morph targets back into window.__proof
     face-proof.html          # bare three.js viewer: plays the proof GLB and asserts the morph weights move;
@@ -247,10 +255,10 @@ resume-v2/
 The character is the "Mechanic Girl" model by IdaFaber (licensed content). The site ships
 only an optimised runtime subset of it; the asset is not part of this repository and may not
 be extracted or reused outside this site. Each build of that subset is one immutable directory
-under `/g2/v2/<build>/` - the GLB, its brotli sidecar, the desktop texture swaps and a manifest -
-so a new character can never invalidate a cached old one. The asset pipeline (FBX to glTF
-optimisation, KTX2 textures, meshopt), the scroll choreography, the gaze rig and the loader are
-my own work.
+under `/g2/v2/<build>/` - the GLB, its brotli sidecar, the desktop texture swaps, the poster set the
+document references and a manifest - so a new character can never invalidate a cached old one. The
+asset pipeline (FBX to glTF optimisation, KTX2 textures, meshopt), the scroll choreography, the
+poster set and the loader are my own work.
 
 ## Scroll rig
 
@@ -281,7 +289,10 @@ texture tiers - the set the loader waits for, and the four desktop swaps that re
 textures once the scene is live - and prices each tier over the wire and as resident BC7; `pipeline:clips`
 produces the animation half of the byte budget the design decisions are made against;
 `pipeline:idle` brings the engine idle onto the character skeleton - template copy, compatible
-skeleton, bones-only export - and measures the rest-pose parity of the two rigs; `pipeline:assemble`
+skeleton, bones-only export - and measures both rigs against each other: the rest-pose parity, which
+is zero here because pinning the look's own mesh makes the engine export the look's rig, and
+`baked_translation_delta`, the share by which the clip's baked bone translations depart from that
+rest pose. It is 14 % on the median bone, and that is what makes the bake rotation-only; `pipeline:assemble`
 builds the served subset itself - the look joined by material, the morphs cut to the shipped list,
 the idle baked onto the rig, the tier-1 textures embedded, meshopt compression, the glTF validator -
 and prints the byte counts `src/scene/assets.ts` pins; `pipeline:poster` encodes the captured first
