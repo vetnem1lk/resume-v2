@@ -44,3 +44,18 @@ test('a vertex pair lands after its chunk and a missing chunk throws', () => {
   patch(bad, { key: 'x', fragment: [['no_such_chunk', '']], uniforms: {} });
   expect(() => bad.onBeforeCompile(shader())).toThrow('no #include <no_such_chunk>');
 });
+
+test('a JSON-cloned userData carries a plain object, not the slot map, and the clone still patches', () => {
+  const m = fakeMaterial();
+  patch(m, { key: 'fade', fragment: [['opaque_fragment', 'gl_FragColor.a *= 0.5;']], uniforms: { uFade: { value: 1 } } });
+  const clone = fakeMaterial();
+  clone.userData = JSON.parse(JSON.stringify(m.userData));   // exactly what Material.copy() does
+  expect(clone.userData.patches).toEqual({});
+  expect(uniformsOf(clone, 'fade')).toBeUndefined();
+  patch(clone, { key: 'tint', fragment: [['opaque_fragment', 'gl_FragColor.rgb *= 0.9;']], uniforms: {} });
+  const s = shader();
+  clone.onBeforeCompile(s);
+  expect(s.fragmentShader).toContain('#include <opaque_fragment>\ngl_FragColor.rgb *= 0.9;');
+  expect(s.fragmentShader).not.toContain('gl_FragColor.a *= 0.5;');
+  expect(clone.customProgramCacheKey()).toBe('tint');
+});

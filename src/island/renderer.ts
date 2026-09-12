@@ -111,13 +111,18 @@ export function createRenderer(canvas: HTMLCanvasElement, cap: number, overrides
   const environment = (): void => {
     scene.environment = buildEnvironment(renderer, lights.environmentSize);
   };
-  const environmentReady = new Promise<void>((resolve) => {
-    requestAnimationFrame(() => {
-      setTimeout(() => {
+  // The wait always ends: a rAF that never fires (a hidden document) or a throwing build must not
+  // strand a consumer that chains its compile - and its teardown - on this promise.
+  let settle!: () => void;
+  const environmentReady = new Promise<void>((resolve) => { settle = resolve; });
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      try {
         if (!disposed && scene.environment === null) environment();
-        resolve();
-      }, 0);
-    });
+      } finally {
+        settle();
+      }
+    }, 0);
   });
 
   const handleLost = (event: Event): void => {
@@ -143,6 +148,7 @@ export function createRenderer(canvas: HTMLCanvasElement, cap: number, overrides
     onRestored: (cb) => { restored = cb; },
     dispose: () => {
       disposed = true;
+      settle();
       renderer.setAnimationLoop(null);
       observer.disconnect();
       canvas.removeEventListener('webglcontextlost', handleLost);

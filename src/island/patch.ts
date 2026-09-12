@@ -19,8 +19,14 @@ export interface Patch {
   readonly uniforms: Uniforms;
 }
 
-type Patched = Material & { userData: { patches?: Map<string, Patch> } };
+type Patched = Material & { userData: { patches?: unknown } };
 type Lines = Map<string, string[]>;
+
+/** The slot map, or nothing: Material.clone() JSON-clones userData, where a Map lands as a plain `{}`. */
+const slotsOf = (material: Material): Map<string, Patch> | undefined => {
+  const slots = (material as Patched).userData.patches;
+  return slots instanceof Map ? (slots as Map<string, Patch>) : undefined;
+};
 
 const collect = (into: Lines, pairs: readonly (readonly [string, string])[] | undefined): void => {
   for (const [chunk, glsl] of pairs ?? []) into.set(chunk, [...(into.get(chunk) ?? []), glsl]);
@@ -42,10 +48,11 @@ function inject(source: string, declarations: string, lines: Lines): string {
  *  Three pins: three hands onBeforeCompile a FRESH uniform bag on every recompile, so the slot's own
  *  uniform objects are re-bound each time; customProgramCacheKey is appended to three's own key, so a
  *  constant key per patch keeps every material with the same patches on one program; Material.clone()
- *  copies neither hook and JSON-clones userData, so a clone is patched again, after the clone. */
+ *  copies neither hook and JSON-clones userData (the slot map lands as a plain `{}`), so a clone
+ *  starts from an empty slot map and is patched again, after the clone. */
 export function patch(material: Material, spec: Patch): void {
   const target = material as Patched;
-  const slots = (target.userData.patches ??= new Map<string, Patch>());
+  const slots = slotsOf(material) ?? (target.userData.patches = new Map<string, Patch>());
   if (slots.has(spec.key)) return;
   slots.set(spec.key, spec);
   material.onBeforeCompile = (shader: WebGLProgramParametersWithUniforms): void => {
@@ -71,5 +78,5 @@ export function patch(material: Material, spec: Patch): void {
 
 /** The owned uniform objects of one slot, for per-frame writes. */
 export function uniformsOf(material: Material, key: string): Uniforms | undefined {
-  return (material as Patched).userData.patches?.get(key)?.uniforms;
+  return slotsOf(material)?.get(key)?.uniforms;
 }
