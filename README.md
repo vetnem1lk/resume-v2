@@ -79,6 +79,10 @@ resume-v2/
     scene/gate.ts            # whether this page gets the scene at all: breakpoint, WebGL2, data saver - pure
     scene/boot.ts            # the entry decision with the chunk loader injected: one attempt, never a rejection;
                              # readEnv() is the one impure line of the gate
+    scene/loadstate.ts       # the loader as a pure state machine: bytes, parse, compile, two warm frames, then the
+                             # poster gives way; the 92 % hold, and a failure from any phase that keeps the poster
+    scene/assets.ts          # the served runtime subset by its public versioned path, and the decoded byte counts
+                             # the progress bar counts against; the tier-2 swap table
     scene/pchip.ts           # monotone cubic (PCHIP) interpolation for the camera anchor table;
                              # sanitizeKeys for live-measured keys
     scene/spiral.ts          # closed-form camera spiral: u -> position and look target, section keys land exactly (D4)
@@ -94,6 +98,8 @@ resume-v2/
     beat/clicks.ts           # click delegation: plain-activation filter, the 600 ms hold with a synthetic-click replay
     beat/scroll.ts           # scroll beats from raw u: arrivals both ways, teleport, edges with hysteresis, fling - pure
     island/island.ts         # the scene island, the only importer of three; lazily imported behind the gate
+    island/loaders.ts        # the page-lifetime loader stack: the KTX2 worker pool and transcoder, the streamed
+                             # fetch that reports real bytes, and the parsed character every mount re-uses
     debug/overlay.ts         # ?debug overlay (dev server only): measured section keys, the camera spiral;
                              # the scroll driver, the letterform parallax and the beat log drawn over the page
     build/pages.ts           # Vite plugin resumePages(): fills the shells per language (dev + build)
@@ -134,6 +140,8 @@ resume-v2/
     gate.test.ts             # every gate signal alone keeps the poster, and reduced motion is not one of them
     boot.test.ts             # a refused gate, a rejecting import and a throwing mount all leave the poster
     three-node.test.ts       # the pinned version pair and the rig's damping against three's own
+    loadstate.test.ts        # the phase order, out-of-order events ignored, the hold, failure and the terminal states
+    loaders.test.ts          # the byte stream against the pinned denominator, a 404 and an offline reload, the retry
     assets.test.ts           # the asset host's path rule: the prefix, inside the root, the served types
     pchip.test.ts            # every key hit exactly, monotone with no overshoot, the clamps and the key sanitiser
     spiral.test.ts           # every key lands exactly, the orbit is monotone, both eye rules, the clamps and the lag
