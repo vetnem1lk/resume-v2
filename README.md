@@ -39,9 +39,12 @@ JavaScript disabled; the 3D scene on top of it is a progressive enhancement.
 
 | entry JS | scene chunk | entry CSS | document | character GLB |
 | -------- | ----------- | --------- | -------- | ------------- |
-| 1 381 B  | 53 B        | 3 724 B   | 5 854 B  | 3 728 004 B   |
+| 1 391 B  | 195 784 B   | 3 724 B   | 5 856 B  | 3 728 004 B   |
 
-The scene chunk is the stub island; the island tasks fill it and re-measure.
+The scene chunk is the whole island: three.js, the GLTF / KTX2 / meshopt loaders, the renderer,
+the character, the mirrored floor and the camera. The texture transcoder (a worker script and its
+wasm, emitted as separate assets) is fetched by the worker only when the first texture arrives and
+is not part of that figure.
 
 The first four are gzip level 9 over the built file (`zlib.gzipSync(buf, { level: 9 }).length`),
 never the build log's column; `budget.json` carries each one rounded up to the next kibibyte
@@ -99,7 +102,14 @@ resume-v2/
     beat/bus.ts              # BEATS vocabulary, Beat, BeatBus (one EventTarget, one event type), the page bus
     beat/clicks.ts           # click delegation: plain-activation filter, the 600 ms hold with a synthetic-click replay
     beat/scroll.ts           # scroll beats from raw u: arrivals both ways, teleport, edges with hysteresis, fling - pure
-    island/island.ts         # the scene island, the only importer of three; lazily imported behind the gate
+    island/island.ts         # the scene island, lazily imported behind the gate: mounts the renderer on the stage,
+                             # streams the character in, runs the one loop (scroll rig, idle, beats, render), unmounts
+    island/character.ts      # the parsed character made ready: coverage-tested cut-outs, the idle action, the blink
+                             # through the morph dictionary, the reduced-motion freeze (seek first, then pause)
+    island/floor.ts          # the mirrored floor: detached-bind twins sharing skeleton, geometry and morph weights,
+                             # unlit and faded with depth below the floor, plus the contact-shadow quad
+    island/camera.ts         # the spiral camera: the strip-x view offset and its parser (pure), the stage read,
+                             # the per-frame pose on the spiral
     island/loaders.ts        # the page-lifetime loader stack: the KTX2 worker pool and transcoder, the streamed
                              # fetch that reports real bytes, and the parsed character every mount re-uses
     island/renderer.ts       # the WebGL2 probe and the tier, exact device-pixel sizing, the renderer + lit scene +
@@ -168,6 +178,8 @@ resume-v2/
     loadstate.test.ts        # the phase order, out-of-order events ignored, the hold, failure and the terminal states
     loaders.test.ts          # the byte stream against the pinned denominator, a 404 and an offline reload, the retry
     patch.test.ts            # the patch helper on a fake material: slot order, joined keys, a repeated key, a missing chunk
+    camera.test.ts           # the view offset that lands the character's axis in the poster column, the strip-x parser
+    mirror.test.ts           # three under Node: a detached-bind twin reflects through the floor, an attached one does not
     assets.test.ts           # the asset host's path rule: the prefix, inside the root, the served types
     pchip.test.ts            # every key hit exactly, monotone with no overshoot, the clamps and the key sanitiser
     spiral.test.ts           # every key lands exactly, the orbit is monotone, both eye rules, the clamps and the lag
@@ -230,6 +242,10 @@ subscribes to (clicks on `data-beat` anchors, with a bounded hold before externa
 and scroll-derived beats). Every motion is a pure pose function of the frame; the page's
 letterform, for instance, turns and rises with the camera through three CSS custom properties.
 None of it imports three.js. In development, `/?debug` draws the whole rig over the page.
+The scene island (`src/island/`) is the rig's production consumer: its one animation loop steps
+the driver, the camera rides the spiral at the damped progress with a view offset that keeps the
+character's axis in the poster column, the idle plays on a mirrored floor, and reduced motion
+freezes the idle on a settled pose while the camera cuts instead of gliding.
 
 ## Asset pipeline
 
