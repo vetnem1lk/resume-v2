@@ -19,7 +19,10 @@ let parsed: Promise<GLTF> | null = null;
  *  the GLB, instead of when parseAsync reaches the first embedded image. */
 export function detectSupport(renderer: WebGLRenderer): void {
   ktx2.detectSupport(renderer);
-  void ktx2.init();
+  // The rejection is dropped here, not unhandled: three caches the transcoder promise, so the
+  // same failure resurfaces on the first texture load or GLB parse, where loadCharacter turns it
+  // into a `fail` event and the poster stays.
+  ktx2.init().catch(() => {});
 }
 
 /** Streams the file and reports real received bytes against the pinned decoded length: the host

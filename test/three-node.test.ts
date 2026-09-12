@@ -1,5 +1,6 @@
-// The one file that imports three under Node: the pinned version pair, and the S3 damp against
-// three's own (they part only at the zero-length reduced-motion frame, where three returns NaN).
+// three under Node, here and in loaders.test.ts (both renderer-free): the pinned version pair,
+// and the S3 damp against three's own (they part only at the zero-length reduced-motion frame,
+// where three returns NaN).
 import { readFileSync } from 'node:fs';
 import { MathUtils, REVISION } from 'three';
 import { expect, test } from 'vitest';
