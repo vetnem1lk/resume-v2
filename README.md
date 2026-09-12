@@ -37,15 +37,17 @@ JavaScript disabled; the 3D scene on top of it is a progressive enhancement.
 
 ### Measured today
 
-| entry JS | scene chunk | entry CSS | document |
-| -------- | ----------- | --------- | -------- |
-| 1 381 B  | 53 B        | 3 724 B   | 5 854 B  |
+| entry JS | scene chunk | entry CSS | document | character GLB |
+| -------- | ----------- | --------- | -------- | ------------- |
+| 1 381 B  | 53 B        | 3 724 B   | 5 854 B  | 3 728 004 B   |
 
 The scene chunk is the stub island; the island tasks fill it and re-measure.
 
-Every number is gzip level 9 over the built file (`zlib.gzipSync(buf, { level: 9 }).length`),
+The first four are gzip level 9 over the built file (`zlib.gzipSync(buf, { level: 9 }).length`),
 never the build log's column; `budget.json` carries each one rounded up to the next kibibyte
-above measured + 15 %, and `npm run gate` fails the build the moment a number passes it.
+above measured + 15 %, and `npm run gate` fails the build the moment a number passes it. The
+character is not part of the build: its column is the brotli sidecar the host serves (4 081 816 B
+on disk, 49 371 triangles and 17 embedded textures), measured by the assemble step.
 
 ## Repository map
 
@@ -115,6 +117,8 @@ resume-v2/
                              # tier picks and their file names, the BC7 resident-bytes formula, the manifest row
     pipeline/glb.ts          # gltf-transform accounting of a GLB: decoded bytes per mesh/morph/clip next to the
                              # on-disk size, the JSON/BIN chunk split and the brotli-11 transfer size
+    pipeline/look.ts         # the production material table: which texture key feeds which slot of which exported
+                             # material, and the alpha, face and metal rules the FBX import gets wrong
   scripts/
     precompress.mjs          # brotli sidecars for every compressible file in dist/
     budget.mjs               # gz9 gates over dist/: entry, the lazy scene chunk, orphan walk, source purity,
@@ -122,7 +126,7 @@ resume-v2/
     smoke.mjs                # every reachable URL answers with the right type
     nojs.mjs                 # writes dist-nojs/ = dist/ with every <script> removed (the Lighthouse "JS disabled" target)
     pipeline/paths.ts        # tool and raw-data locations, every one overridable through the environment
-    pipeline/run-blender.ts  # one headless Blender job; hands back the job's S2_ sentinel line
+    pipeline/run-blender.ts  # one headless Blender job; hands back the job's sentinel line
     pipeline/run-ue.ts       # one headless UE python job; trusts its S2_RESULT line and the files it wrote
     pipeline/inventory.ts    # measures the whole FBX package, writes the per-file JSONs plus inventory.json/.md
     pipeline/face-proof.ts   # face proof end to end: the UE export, the two Blender jobs, the GLB copy for the viewer
@@ -132,10 +136,17 @@ resume-v2/
     pipeline/clip-sources.ts # every clip's origin, licence, route onto the skeleton and measured facts; what may ship
     pipeline/ue-template.ts  # copies the engine mannequin example assets into the project, never overwriting
     pipeline/idle.ts         # the engine idle onto the character skeleton: backup, template copy, export, rig parity
-    pipeline/blender/fbxlib.py       # shared Blender helpers: import, mesh stats, bound bones, shape-key deltas, GLB JSON
+    pipeline/assemble.ts     # the served subset end to end: the Blender assemble, the look and the tier-1 KTX2 files
+                             # wired onto it, meshopt, validation, one immutable build directory and the pinned block
+    pipeline/gltf.ts         # opens the gltf-transform packages inside the global CLI tree and declares their shapes
+    pipeline/manifest.ts     # one row per served file, bytes on disk and over the wire, brotli sidecar where it helps
+    pipeline/blender/fbxlib.py       # shared Blender helpers: import, the look's export hygiene and glTF flag sets,
+                                     # morph pruning, mesh stats, bound bones, shape-key deltas, GLB JSON
     pipeline/blender/inventory.py    # one fresh scene per FBX, one JSON per file, one sentinel line
     pipeline/blender/face_proof.py   # proves the shape-key f-curves survived the FBX, exports the GLB, writes the verdict
-    pipeline/blender/measure.py      # export hygiene, morph pruning per tier, GLB exports and the name-keyed clip bake
+    pipeline/blender/measure.py      # GLB exports per morph tier and the name-keyed clip bake (the S2 measurement)
+    pipeline/blender/assemble.py     # the shipped look: pruned to the shipped morphs, joined by material, the idle
+                                     # baked rotation-only with a measured ground-contact offset, exported float32
     pipeline/blender/rig_parity.py   # rest-pose parity of a clip rig against the look rig, and the rotation-only bake
     pipeline/blender/llf_csv.py      # Live Link Face CSV -> shape-key f-curves, no add-on, with a synthetic self-test
     pipeline/ue/face_proof_synth.py  # synthetic ARKit clip on the idle, exported to FBX with its blend-shape curves
@@ -167,10 +178,14 @@ resume-v2/
     inventory.test.ts        # the inventory summary arithmetic and the morph keep-list tiers
     vram.test.ts             # the morph VRAM formula, pinned at and past the maxTextureSize wrap
     ktx.test.ts              # the encode recipes: sRGB colour, assigned-linear data, zstd only on UASTC
+    look.test.ts             # every exported material has a look, every slot a planned tier-1 key, cut-outs masked
+    manifest.test.ts         # the wire size is the sidecar only where it shrinks the file, and the totals add up
     glb.test.ts              # the byte budget: the accounting arithmetic, the GLB chunk/transfer sizes, the table
     fixtures/inventory-mini.json  # two hand-written FBX reports, a combine plus a module, that inventory.test.ts
                              # pins the summary arithmetic against
   tools/
+    tier1-proof.html         # render proof of the assembled character: plays the Idle off the asset host and reads
+                             # draw calls, triangles, skins and morph targets back into window.__proof
     face-proof.html          # bare three.js viewer: plays the proof GLB and asserts the morph weights move;
                              # ?glb= opens any other export and falls back to its first clip when it has no
                              # weights track (the GLBs live in tools/assets/, gitignored with the rest of the asset)
@@ -191,8 +206,11 @@ resume-v2/
 
 The character is the "Mechanic Girl" model by IdaFaber (licensed content). The site ships
 only an optimised runtime subset of it; the asset is not part of this repository and may not
-be extracted or reused outside this site. The asset pipeline (FBX to glTF optimisation,
-KTX2 textures, meshopt), the scroll choreography, the gaze rig and the loader are my own work.
+be extracted or reused outside this site. Each build of that subset is one immutable directory
+under `/g2/v2/<build>/` - the GLB, its brotli sidecar, the desktop texture swaps and a manifest -
+so a new character can never invalidate a cached old one. The asset pipeline (FBX to glTF
+optimisation, KTX2 textures, meshopt), the scroll choreography, the gaze rig and the loader are
+my own work.
 
 ## Scroll rig
 
@@ -219,7 +237,10 @@ texture tiers - the set the loader waits for, and the four desktop swaps that re
 textures once the scene is live - and prices each tier over the wire and as resident BC7; `pipeline:clips`
 produces the animation half of the byte budget the design decisions are made against;
 `pipeline:idle` brings the engine idle onto the character skeleton - template copy, compatible
-skeleton, bones-only export - and measures the rest-pose parity of the two rigs.
+skeleton, bones-only export - and measures the rest-pose parity of the two rigs; `pipeline:assemble`
+builds the served subset itself - the look joined by material, the morphs cut to the shipped list,
+the idle baked onto the rig, the tier-1 textures embedded, meshopt compression, the glTF validator -
+and prints the byte counts `src/scene/assets.ts` pins.
 
 Textures, re-measured with the corrected mip recipe (clamped edges, one resampler end to end):
 tier 1 is 3 392 136 B over the wire and 11 971 696 B resident once the GPU has it as BC7 - 8 393 B

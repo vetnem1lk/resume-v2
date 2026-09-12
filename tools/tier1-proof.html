@@ -1,0 +1,60 @@
+<!doctype html>
+<!-- Render proof of the assembled tier-1 file: loads /g2/v2/<build>/mg.glb through the asset host,
+     plays the Idle, and reads back draw calls, triangles, skins and morph targets into window.__proof.
+     Outside the site bundle; the file it loads is served from outside the repository. -->
+<html lang="en"><head><meta charset="utf-8"><title>tier-1 proof</title>
+<style>html,body{margin:0;height:100%;background:#F4F1EA;color:#14161A;font:13px/1.4 ui-monospace,monospace}#hud{position:fixed;left:12px;top:12px;white-space:pre;background:rgba(244,241,234,.85);padding:8px 10px;border:1px solid #D9D3C6}canvas{display:block;width:100%;height:100%}</style>
+</head><body><div id="hud">loading</div><canvas id="c"></canvas>
+<script type="module">
+import * as THREE from 'three';
+import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+import { KTX2Loader } from 'three/addons/loaders/KTX2Loader.js';
+import { MeshoptDecoder } from 'three/addons/libs/meshopt_decoder.module.js';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+const build = new URLSearchParams(location.search).get('build');
+if (!build) throw new Error('?build=<dir> is required');
+const hud = document.getElementById('hud');
+const canvas = document.getElementById('c');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.setSize(innerWidth, innerHeight);
+renderer.toneMapping = THREE.NeutralToneMapping;
+renderer.info.autoReset = false;
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#F4F1EA');
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04, 0.1, 100, { size: 128 }).texture;
+pmrem.dispose();
+scene.add(new THREE.HemisphereLight(0xffffff, 0x888888, 0.6));
+const key = new THREE.DirectionalLight(0xffffff, 1.6); key.position.set(1, 2, 2); scene.add(key);
+const camera = new THREE.PerspectiveCamera(32, innerWidth / innerHeight, 0.05, 50);
+camera.position.set(0, 1.15, 3.2);
+camera.lookAt(0, 0.95, 0);
+
+const ktx2 = new KTX2Loader().detectSupport(renderer);
+const loader = new GLTFLoader().setKTX2Loader(ktx2).setMeshoptDecoder(MeshoptDecoder);
+const url = `/g2/v2/${build}/mg.glb`;
+const gltf = await loader.parseAsync(await (await fetch(url)).arrayBuffer(), `/g2/v2/${build}/`);
+scene.add(gltf.scene);
+const mixer = new THREE.AnimationMixer(gltf.scene);
+const idle = gltf.animations.find((c) => c.name === 'Idle');
+if (!idle) throw new Error('no Idle clip');
+mixer.clipAction(idle).play();
+let skins = 0, targets = 0, prims = 0;
+gltf.scene.traverse((o) => { if (o.isSkinnedMesh) skins += 1; if (o.isMesh) { prims += 1; targets += o.morphTargetInfluences?.length ?? 0; } });
+let last = performance.now();
+window.__proof = { build, calls: 0, triangles: 0, prims, skins, targets, clip: idle.duration };
+function frame() {
+  const now = performance.now();
+  mixer.update(Math.min((now - last) / 1000, 0.05));
+  last = now;
+  renderer.info.reset();
+  renderer.render(scene, camera);
+  window.__proof.calls = renderer.info.render.calls;
+  window.__proof.triangles = renderer.info.render.triangles;
+  hud.textContent = `${build}\ncalls ${renderer.info.render.calls}  tris ${renderer.info.render.triangles}  prims ${prims}  skinned ${skins}  targets ${targets}\nIdle ${idle.duration.toFixed(3)} s`;
+  requestAnimationFrame(frame);
+}
+frame();
+</script></body></html>

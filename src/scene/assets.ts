@@ -4,11 +4,11 @@
 // length and never the denominator. Licensed content: never in the repository (D10).
 
 /** One immutable directory per build of the subset. */
-export const ASSET_BASE = '/g2/v2/s4a/';
+export const ASSET_BASE = '/g2/v2/s4-25c41fe4/';
 
 export const GLB = {
   url: `${ASSET_BASE}mg.glb`,
-  bytes: 3_977_536,
+  bytes: 4_081_816,
 } as const;
 
 /** The poster column the character stands in (CSS px at 1x); the files are 1x and 2x, AVIF + WebP. */
