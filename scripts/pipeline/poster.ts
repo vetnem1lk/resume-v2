@@ -4,6 +4,7 @@
 import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
+import { ASPECT, bandWindow, HEAD, type Box } from '../../src/pipeline/band.ts';
 import { POSTER } from '../../src/scene/assets.ts';
 import { PATHS } from './paths.ts';
 
@@ -18,7 +19,7 @@ interface Image {
   avif(options: { quality: number; effort: number }): Image;
   webp(options: { quality: number; effort: number; alphaQuality: number }): Image;
   toBuffer(): Promise<Buffer>;
-  toBuffer(options: { resolveWithObject: true }): Promise<{ info: { height: number; trimOffsetTop?: number } }>;
+  toBuffer(options: { resolveWithObject: true }): Promise<{ info: { width: number; height: number; trimOffsetLeft?: number; trimOffsetTop?: number } }>;
 }
 const { default: sharp } = await import(`file:///${PATHS.gltfModules}sharp/lib/index.js`) as { default: (input: Buffer) => Image };
 
@@ -37,30 +38,41 @@ if (statSync(png).mtimeMs < statSync(glb).mtimeMs) throw new Error(`${png} preda
 const source = readFileSync(png);
 const W = POSTER.width * 2;
 const H = POSTER.height * 2;
-/** The band is this share of the column's height. */
-const BAND = 0.55;
-/** The band starts this share of its own height above the first opaque row. */
-const HEADROOM = 0.1;
 const RESIZE = { fit: 'cover', kernel: 'lanczos3' } as const;
 const TRANSPARENT = { r: 0, g: 0, b: 0, alpha: 0 };
 
-// The column at 2x (a capture at another size is resampled onto it), then the band window: it opens
-// a headroom above the head, but never reaches below the last opaque row - where the capture's own
-// edge cut the figure, the band's edge cuts it too, instead of a hard line inside the band.
+/** The opaque bounding box of a PNG buffer, in that buffer's own pixels. */
+async function opaqueBox(buffer: Buffer): Promise<Box> {
+  const { info } = await sharp(buffer).trim({ background: TRANSPARENT }).toBuffer({ resolveWithObject: true });
+  return { left: -(info.trimOffsetLeft ?? 0), top: -(info.trimOffsetTop ?? 0), width: info.width, height: info.height };
+}
+
+// The column at 2x (a capture at another size is resampled onto it), then the band: the head and
+// shoulders cut out of the column. A 1:1 slice cannot be that crop - the column frames a whole
+// standing figure in a 100svh box, so the slice is taller than the figure itself and a phone gets
+// the whole body under a third of a screen of empty paper. The band ships at the window's own
+// resolution: enlarging it here would only store an upscale the browser can do for free.
 const column = await sharp(source).resize(W, H, RESIZE).png().toBuffer();
-const { info } = await sharp(column).trim({ background: TRANSPARENT }).toBuffer({ resolveWithObject: true });
-const bandH = Math.round(H * BAND);
-const head = -(info.trimOffsetTop ?? 0);
-const top = Math.max(0, Math.min(head - Math.round(bandH * HEADROOM), head + info.height - bandH, H - bandH));
-const band = await sharp(column).extract({ left: 0, top, width: W, height: bandH }).png().toBuffer();
-console.log(`column ${W}x${H}, opaque rows ${head}..${head + info.height}, band ${W}x${bandH} from row ${top}`);
+const figure = await opaqueBox(column);
+const headSlice = await sharp(column)
+  .extract({ left: 0, top: figure.top, width: W, height: Math.round(H * HEAD) })
+  .png().toBuffer();
+const head = await opaqueBox(headSlice);
+const headCentre = head.left + head.width / 2;
+const crop = bandWindow({ width: W, height: H }, figure.top, headCentre, ASPECT);
+// Even, so the 1x of the pair is a whole number of pixels.
+const bandW = crop.width + (crop.width % 2);
+const bandH = crop.height + (crop.height % 2);
+const band = await sharp(column).extract(crop).resize(bandW, bandH, RESIZE).png().toBuffer();
+console.log(`column ${W}x${H}, figure ${figure.width}x${figure.height} at ${figure.left},${figure.top}, head centre ${headCentre}`);
+console.log(`band window ${crop.width}x${crop.height} at ${crop.left},${crop.top} -> ${bandW}x${bandH}`);
 
 const outDir = resolve(buildDir, 'poster');
 mkdirSync(outDir, { recursive: true });
 const files: Record<string, number> = {};
 const crops: [string, Buffer, number, number][] = [
   ['tall-2x', column, W, H], ['tall-1x', column, W / 2, H / 2],
-  ['band-2x', band, W, bandH], ['band-1x', band, W / 2, bandH / 2],
+  ['band-2x', band, bandW, bandH], ['band-1x', band, bandW / 2, bandH / 2],
 ];
 for (const [name, input, width, height] of crops) {
   const resized = sharp(input).resize(width, height, RESIZE);

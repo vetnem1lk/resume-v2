@@ -140,6 +140,8 @@ resume-v2/
                              # on-disk size, the JSON/BIN chunk split and the brotli-11 transfer size
     pipeline/look.ts         # the production material table: which texture key feeds which slot of which exported
                              # material, and the alpha, face and metal rules the FBX import gets wrong
+    pipeline/band.ts         # the mobile band's head-and-shoulders window inside the captured poster column: a share
+                             # of the column around the head's own centre, never of the figure the viewport cuts off
   scripts/
     precompress.mjs          # brotli sidecars for every compressible file in dist/
     budget.mjs               # gz9 gates over dist/: entry, the lazy scene chunk, orphan walk, source purity,
@@ -186,7 +188,8 @@ resume-v2/
     loaders.test.ts          # the byte stream against the pinned denominator, a 404 and an offline reload, the retry
     patch.test.ts            # the patch helper on a fake material: slot order, joined keys, a repeated key, a missing chunk
     camera.test.ts           # the view offset that lands the character's axis in the poster column, the strip-x parser
-    poster.test.ts           # the poster column's crop rectangle: centred on strip-x, narrowed by the viewport, scaled by the ratio
+    poster.test.ts           # the poster's two crops: the column centred on strip-x and scaled by the ratio, and the
+                             # band's head-and-shoulders window, which cuts the figure instead of containing it
     mirror.test.ts           # three under Node: a detached-bind twin reflects through the floor, an attached one does not
     assets.test.ts           # the asset host's path rule: the prefix, inside the root, the served types
     pchip.test.ts            # every key hit exactly, monotone with no overshoot, the clamps and the key sanitiser
