@@ -3,9 +3,10 @@
 // JSON and per-second keyframe bytes, and sums morph VRAM per tier.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { account, formatBudget, openIO, sizes } from '../../src/pipeline/glb.ts';
+import { account, formatBudget, sizes } from '../../src/pipeline/glb.ts';
 import { TIERS } from '../../src/pipeline/morphs.ts';
 import { MB, morphTextureBytes, naiveBytes, type Slots } from '../../src/pipeline/vram.ts';
+import { openGltf } from './gltf.ts';
 import { PATHS, REPO_ROOT } from './paths.ts';
 import { runBlender } from './run-blender.ts';
 import { runUe } from './run-ue.ts';
@@ -36,7 +37,7 @@ const { sentinel } = await runBlender(resolve(REPO_ROOT, 'scripts/pipeline/blend
 if (!sentinel?.startsWith('S2_MEASURE_OK')) throw new Error(`measure: ${sentinel}`);
 const measure = JSON.parse(readFileSync(resolve(measureDir, 'measure.json'), 'utf8')) as Measure;
 
-const { io, fn } = await openIO(PATHS.gltfModules);
+const { io, fn } = await openGltf(PATHS.gltfModules);
 const md: string[] = [];
 const tiers: Record<string, { disk: number; transfer: number; decoded: number; morph: number; joints: number; headPositionCount: number; headPrims: number; headTargets: number }> = {};
 const geoSize: Record<string, ReturnType<typeof sizes>> = {};

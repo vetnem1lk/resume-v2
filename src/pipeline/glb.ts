@@ -24,18 +24,6 @@ export function sizes(file: string): GlbSize {
   return { disk: buf.length, transfer, json, bin };
 }
 
-// The vendored packages only resolve through absolute file URLs (they live under the CLI's node_modules).
-export async function openIO(modulesDir: string) {
-  const base = `file:///${modulesDir.replace(/\\/g, '/').replace(/\/?$/, '/')}`;
-  const { NodeIO } = await import(`${base}@gltf-transform/core/dist/index.js`);
-  const { ALL_EXTENSIONS } = await import(`${base}@gltf-transform/extensions/dist/index.js`);
-  const { MeshoptDecoder } = await import(`${base}meshoptimizer/index.js`);
-  const fn = await import(`${base}@gltf-transform/functions/dist/index.js`);
-  await MeshoptDecoder.ready;
-  const io = new NodeIO().registerExtensions(ALL_EXTENSIONS).registerDependencies({ 'meshopt.decoder': MeshoptDecoder });
-  return { io, fn };
-}
-
 // eslint-style typing is intentionally loose: the vendored library has no local type declarations.
 export function account(doc: any, size: { disk: number; transfer: number }, fn: any): Accounting {
   const root = doc.getRoot();
