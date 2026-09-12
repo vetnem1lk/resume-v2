@@ -238,12 +238,18 @@ function start(stage: HTMLElement, options: IslandOptions): (() => void) | null 
         state = loadStep(state, { type: 'frame' });
         if (state.phase === 'live') live(stage);
       }
-      // The quality tier rides this callback, never a promise chain: a hidden tab stops the frames
-      // and the swaps park with them. Each one changes the image, so reduced motion renders it.
+      // The quality tier rides this callback, never a promise chain. A hidden tab throttles the
+      // frames to ~1 Hz rather than stopping them, so the visibility check is what keeps a surface
+      // nobody is looking at from being fetched at all; only an adoption changes the image, so only
+      // an adoption dirties the frame under reduced motion.
       // The scene, not the character: the mirror twins hold the same textures and are swapped with it.
       if (state.phase === 'live') {
         pump ??= createTierPump(scene, renderer, TIER2, loadTexture);
-        if (!pump.done()) { pump.tick(); dirty = true; }
+        if (!pump.done() && document.visibilityState === 'visible') {
+          const landed = pump.holders().length;
+          pump.tick();
+          if (pump.holders().length !== landed) dirty = true;
+        }
       }
       if (previous !== 0) {
         gaps[frames % GAP_FRAMES] = time - previous;

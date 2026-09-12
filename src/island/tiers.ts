@@ -1,6 +1,6 @@
 // The desktop quality tier: KTX2 files fetched outside the GLB and swapped onto the live materials
-// one per frame, driven from the island's frame callback (a rAF-paced promise parks forever in a
-// hidden tab). A failed fetch skips its entry and is never retried.
+// one per frame, driven from the island's frame callback - which paces the set and lets the island
+// hold it back while the tab is off screen. A failed fetch skips its entry and is never retried.
 import type { Material, Mesh, Object3D, Texture } from 'three';
 import type { TierEntry } from '../scene/assets.ts';
 

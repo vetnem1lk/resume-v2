@@ -39,7 +39,7 @@ JavaScript disabled; the 3D scene on top of it is a progressive enhancement.
 
 | entry JS | scene chunk | entry CSS | document EN / RU  | character GLB | poster (tall, 2x AVIF) |
 | -------- | ----------- | --------- | ----------------- | ------------- | ---------------------- |
-| 1 390 B  | 196 354 B   | 3 802 B   | 6 034 B / 6 790 B | 3 728 004 B   | 39 067 B               |
+| 1 391 B  | 196 387 B   | 3 802 B   | 6 032 B / 6 789 B | 3 728 004 B   | 39 067 B               |
 
 The scene chunk is the whole island: three.js, the GLTF / KTX2 / meshopt loaders, the renderer,
 the character, the mirrored floor, the camera and the quality tier. The texture transcoder (a worker
@@ -106,7 +106,7 @@ resume-v2/
     beat/scroll.ts           # scroll beats from raw u: arrivals both ways, teleport, edges with hysteresis, fling - pure
     island/island.ts         # the scene island, lazily imported behind the gate: mounts the renderer on the stage,
                              # streams the character in, runs the one loop (scroll rig, idle, beats, render, the
-                             # quality tier once the scene is live), unmounts
+                             # quality tier once the scene is live and the tab is on screen), unmounts
     island/character.ts      # the parsed character made ready: coverage-tested cut-outs, the idle action, the blink
                              # through the morph dictionary, the reduced-motion freeze (seek first, then pause)
     island/floor.ts          # the mirrored floor: detached-bind twins sharing skeleton, geometry, morph weights and
