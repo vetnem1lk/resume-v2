@@ -1,5 +1,5 @@
-// The tier pump on fake materials: sampler state carried over, shared textures disposed once,
-// one adoption per tick, a rejected entry skipped without a retry.
+// The tier pump on fake materials: sampler state carried over, a replaced texture disposed once and
+// only when its last holder let go, one adoption per tick, a rejected entry skipped without a retry.
 import { expect, test, vi } from 'vitest';
 import { adoptSampler, createTierPump, swapMap } from '../src/island/tiers.ts';
 
@@ -19,15 +19,29 @@ test('swapMap replaces every holder of the material and disposes the old texture
   const old = texture('old');
   const a = material('MAT_HEAD', old);
   const b = material('MAT_HEAD', old);
-  const other = material('MAT_BODY', old);
+  const body = texture('body');
+  const other = material('MAT_BODY', body);
   const root = mesh(a);
   root.children.push(mesh(b), mesh(other));
   const next = texture('new');
   expect(swapMap(root as never, 'MAT_HEAD', 'map', next as never)).toBe(2);
   expect(a.map).toBe(next);
   expect(b.map).toBe(next);
-  expect(other.map).toBe(old);
+  expect(other.map).toBe(body);
   expect(old.dispose).toHaveBeenCalledTimes(1);
+});
+
+test('a texture two material names share outlives the swap of one of them', () => {
+  const shared = texture('eyes_bc');               // the GLB has one: MAT_EYE_R and MAT_EYE_L
+  const right = material('MAT_EYE_R', shared);
+  const left = material('MAT_EYE_L', shared);
+  const root = mesh(right);
+  root.children.push(mesh(left));
+  expect(swapMap(root as never, 'MAT_EYE_R', 'map', texture('right') as never)).toBe(1);
+  expect(left.map).toBe(shared);
+  expect(shared.dispose).not.toHaveBeenCalled();   // disposing it here duplicates the GL texture
+  expect(swapMap(root as never, 'MAT_EYE_L', 'map', texture('left') as never)).toBe(1);
+  expect(shared.dispose).toHaveBeenCalledTimes(1); // the last holder let go
 });
 
 test('the pump adopts one entry per tick and skips a rejected one without retrying', async () => {

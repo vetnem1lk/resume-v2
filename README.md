@@ -41,7 +41,7 @@ JavaScript disabled; the 3D scene on top of it is a progressive enhancement.
 
 | entry JS | scene chunk | entry CSS | document EN / RU  | character GLB | poster (tall, 2x AVIF) |
 | -------- | ----------- | --------- | ----------------- | ------------- | ---------------------- |
-| 1 391 B  | 196 387 B   | 3 802 B   | 6 032 B / 6 789 B | 3 728 004 B   | 39 067 B               |
+| 1 390 B  | 196 399 B   | 3 802 B   | 6 034 B / 6 789 B | 3 728 004 B   | 39 067 B               |
 
 The scene chunk is the whole island: three.js, the GLTF / KTX2 / meshopt loaders, the renderer,
 the character, the mirrored floor, the camera and the quality tier. The texture transcoder (a worker

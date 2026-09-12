@@ -28,18 +28,19 @@ type Holder = Material & Partial<Record<Slot, Texture | null>>;
 
 /** Swaps the slot(s) on every material of that name - the mirror twin carries the name too, and a
  *  texture left on it would be re-uploaded the frame after it was disposed. Returns the holders
- *  swapped; the old texture is shared across them, so it is disposed once, after the last of them
- *  points at the new one. No material.needsUpdate: the slot was occupied, the program key stands. */
+ *  swapped; a replaced texture is disposed once, and only after nothing on the root points at it
+ *  any more. No material.needsUpdate: the slot was occupied, the program key stands. */
 export function swapMap(root: Object3D, materialName: string, slot: TierEntry['slot'], next: Texture): number {
-  const seen = new Set<Material>();
+  const materials = new Set<Material>();
   const replaced = new Set<Texture>();
   let hits = 0;
   root.traverse((object) => {
     const mesh = object as Mesh;
     if (!mesh.isMesh) return;
     for (const material of Array.isArray(mesh.material) ? mesh.material : [mesh.material]) {
-      if (material.name !== materialName || seen.has(material)) continue;
-      seen.add(material);
+      if (materials.has(material)) continue;
+      materials.add(material);
+      if (material.name !== materialName) continue;
       const holder = material as Holder;
       let swapped = false;
       for (const key of SLOTS[slot]) {
@@ -53,6 +54,11 @@ export function swapMap(root: Object3D, materialName: string, slot: TierEntry['s
       if (swapped) hits += 1;
     }
   });
+  // A replaced texture can still hang on a material this swap did not touch: another material name
+  // (the GLB shares the eye colour map across two of them) or a slot outside this entry's. Dropping
+  // it from the set leaves only the textures nothing holds - three re-uploads a disposed texture on
+  // its next use, so a wrong dispose costs a permanently duplicated GL texture, not a crash.
+  for (const material of materials) for (const held of Object.values(material) as unknown[]) replaced.delete(held as Texture);
   for (const previous of replaced) previous.dispose();
   return hits;
 }
