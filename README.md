@@ -39,12 +39,12 @@ JavaScript disabled; the 3D scene on top of it is a progressive enhancement.
 
 | entry JS | scene chunk | entry CSS | document EN / RU  | character GLB | poster (tall, 2x AVIF) |
 | -------- | ----------- | --------- | ----------------- | ------------- | ---------------------- |
-| 1 391 B  | 195 762 B   | 3 802 B   | 6 032 B / 6 788 B | 3 728 004 B   | 39 067 B               |
+| 1 390 B  | 196 354 B   | 3 802 B   | 6 034 B / 6 790 B | 3 728 004 B   | 39 067 B               |
 
 The scene chunk is the whole island: three.js, the GLTF / KTX2 / meshopt loaders, the renderer,
-the character, the mirrored floor and the camera. The texture transcoder (a worker script and its
-wasm, emitted as separate assets) is fetched by the worker only when the first texture arrives and
-is not part of that figure.
+the character, the mirrored floor, the camera and the quality tier. The texture transcoder (a worker
+script and its wasm, emitted as separate assets) is fetched by the worker only when the first texture
+arrives and is not part of that figure.
 
 The first four are gzip level 9 over the built file (`zlib.gzipSync(buf, { level: 9 }).length`),
 never the build log's column; `budget.json` carries each one rounded up to the next kibibyte
@@ -105,11 +105,13 @@ resume-v2/
     beat/clicks.ts           # click delegation: plain-activation filter, the 600 ms hold with a synthetic-click replay
     beat/scroll.ts           # scroll beats from raw u: arrivals both ways, teleport, edges with hysteresis, fling - pure
     island/island.ts         # the scene island, lazily imported behind the gate: mounts the renderer on the stage,
-                             # streams the character in, runs the one loop (scroll rig, idle, beats, render), unmounts
+                             # streams the character in, runs the one loop (scroll rig, idle, beats, render, the
+                             # quality tier once the scene is live), unmounts
     island/character.ts      # the parsed character made ready: coverage-tested cut-outs, the idle action, the blink
                              # through the morph dictionary, the reduced-motion freeze (seek first, then pause)
-    island/floor.ts          # the mirrored floor: detached-bind twins sharing skeleton, geometry and morph weights,
-                             # unlit and faded with depth below the floor, plus the contact-shadow quad
+    island/floor.ts          # the mirrored floor: detached-bind twins sharing skeleton, geometry, morph weights and
+                             # material names (the quality tier swaps their textures with the original's), unlit and
+                             # faded with depth below the floor, plus the contact-shadow quad
     island/camera.ts         # the spiral camera: the strip-x view offset and its parser (pure), the stage read,
                              # the per-frame pose on the spiral
     island/loaders.ts        # the page-lifetime loader stack: the KTX2 worker pool and transcoder, the streamed
@@ -122,6 +124,9 @@ resume-v2/
                              # uniforms re-bound on every recompile; applied after any clone
     island/poster.ts         # the stage class that cross-fades the poster out under the live canvas; the column's
                              # crop rectangle (pure) and the dev-only capture of the frame on screen for pipeline:poster
+    island/tiers.ts          # the desktop quality tier: the KTX2 files fetched outside the GLB and adopted one per
+                             # frame once the scene is live, the sampler state carried over, the texture they
+                             # replace disposed once every holder of it points at the new one
     debug/overlay.ts         # ?debug overlay (dev server only): measured section keys, the camera spiral;
                              # the scroll driver, the letterform parallax and the beat log drawn over the page
     build/pages.ts           # Vite plugin resumePages(): fills the shells per language (dev + build)
@@ -190,6 +195,8 @@ resume-v2/
     camera.test.ts           # the view offset that lands the character's axis in the poster column, the strip-x parser
     poster.test.ts           # the poster's two crops: the column centred on strip-x and scaled by the ratio, and the
                              # band's head-and-shoulders window, which cuts the figure instead of containing it
+    tiers.test.ts            # the tier pump on fake materials: the sampler copy, one adoption per tick, every holder
+                             # of a shared texture swapped before it is disposed, a rejected entry skipped for good
     mirror.test.ts           # three under Node: a detached-bind twin reflects through the floor, an attached one does not
     assets.test.ts           # the asset host's path rule: the prefix, inside the root, the served types
     pchip.test.ts            # every key hit exactly, monotone with no overshoot, the clamps and the key sanitiser
@@ -283,4 +290,6 @@ Textures, re-measured with the corrected mip recipe (clamped edges, one resample
 tier 1 is 3 392 136 B over the wire and 11 971 696 B resident once the GPU has it as BC7 - 8 393 B
 (0.25 %) under the first encode of the same pick, which generated its small mips with the wrong
 wrap and filter. The four tier-2 swaps cost 2 730 007 B more and take the resident set to
-24 554 608 B: three 2K colour maps, plus the one ORM whose codec was measurably wrong at 1K.
+24 554 608 B: three 2K colour maps, plus the one ORM whose codec was measurably wrong at 1K. They
+are fetched only after the scene is live and adopted one per frame, each replaced texture disposed
+as the new one lands - the live texture count does not move while the tier arrives.

@@ -28,11 +28,14 @@ const fadeSlot = (floorY: number): Patch => ({
 
 type Mapped = Material & { map?: Texture | null; color?: Color };
 
-/** A fresh unlit material carrying the source's colour, cut-out and facing rules, patched with the fade.
+/** A fresh unlit material carrying the source's name, colour, cut-out and facing rules, patched with
+ *  the fade. The name is what the quality tier finds its holders by: the twin shares the source's
+ *  texture, and one left behind would be re-uploaded the frame after the swap disposed it.
  *  Single pass: a transparent double-sided twin would otherwise be drawn twice (back faces, then front). */
 function twinMaterial(source: Material, slot: Patch): MeshBasicMaterial {
   const { map, color, alphaTest, alphaToCoverage, side } = source as Mapped;
   const material = new MeshBasicMaterial({ map, color, alphaTest, alphaToCoverage, side, transparent: true, depthWrite: false, forceSinglePass: true });
+  material.name = source.name;
   patch(material, slot);
   return material;
 }

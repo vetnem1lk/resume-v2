@@ -5,7 +5,7 @@ import { Timer, type Mesh, type Object3D, type Texture } from 'three';
 import { bus } from '../beat/bus.ts';
 import { wireClicks } from '../beat/clicks.ts';
 import { initialScrollBeatState, scrollBeats, type ScrollBeatState } from '../beat/scroll.ts';
-import { POSTER } from '../scene/assets.ts';
+import { POSTER, TIER2 } from '../scene/assets.ts';
 import { WIDE } from '../scene/gate.ts';
 import { LETTERFORM_DEFAULTS, letterformPose, letterformVars, type LetterformParams } from '../scene/letterform.ts';
 import { INITIAL_LOAD, loadStep, type LoadState } from '../scene/loadstate.ts';
@@ -17,9 +17,10 @@ import { applySpiral, applyViewOffset, readStripX } from './camera.ts';
 import { adoptCharacter, type Character } from './character.ts';
 import { mirrorFloor, type Floor } from './floor.ts';
 import type { Lights } from './lights.ts';
-import { detectSupport, loadCharacter } from './loaders.ts';
+import { detectSupport, loadCharacter, loadTexture } from './loaders.ts';
 import { capturePoster, LIVE, live, posterCrop } from './poster.ts';
 import { afterPending, canRender, createRenderer, dprCap, tierOf, type RendererHandle } from './renderer.ts';
+import { createTierPump, type TierPump } from './tiers.ts';
 
 export interface IslandOptions {
   readonly camera?: 'spiral' | 'fixed';
@@ -100,6 +101,7 @@ function start(stage: HTMLElement, options: IslandOptions): (() => void) | null 
   let character: Character | null = null;
   let floor: Floor | null = null;
   let compiling: Promise<unknown> | null = null;
+  let pump: TierPump | null = null;
   let driver: ScrollDriver | null = null;
   let rig: Spiral | null = null;
   let rigWarned = false;
@@ -236,6 +238,13 @@ function start(stage: HTMLElement, options: IslandOptions): (() => void) | null 
         state = loadStep(state, { type: 'frame' });
         if (state.phase === 'live') live(stage);
       }
+      // The quality tier rides this callback, never a promise chain: a hidden tab stops the frames
+      // and the swaps park with them. Each one changes the image, so reduced motion renders it.
+      // The scene, not the character: the mirror twins hold the same textures and are swapped with it.
+      if (state.phase === 'live') {
+        pump ??= createTierPump(scene, renderer, TIER2, loadTexture);
+        if (!pump.done()) { pump.tick(); dirty = true; }
+      }
       if (previous !== 0) {
         gaps[frames % GAP_FRAMES] = time - previous;
         frames += 1;
@@ -267,6 +276,8 @@ function start(stage: HTMLElement, options: IslandOptions): (() => void) | null 
           uSmooth: lastFrame?.uSmooth ?? 0,
           idle: character?.idle.time ?? 0,
           reduced,
+          // Holders swapped per adopted tier-2 entry; four of them means the whole tier landed.
+          tier: pump?.holders() ?? [],
         }),
         gap,
         rig: () => keys,
