@@ -1,7 +1,9 @@
 // Texture byte budget: export the used PNG set from UE once, then resize / composite with sharp
 // and encode every tier-1 and tier-2 pick with ktx create, validate each file, and price both
-// tiers over the wire and as resident BC7. A finished encode is cached by its own arguments.
+// tiers over the wire and as resident BC7. An encode is cached by its arguments, the bytes it
+// consumed and the encoder version.
 import { execFileSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { existsSync, mkdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { TEXTURE_PLAN, TIER1, TIER2, ktxArgs, manifestRow, pickFile, textureVramBytes, validateArgs, type ManifestTexture, type TexPick, type TexPlan } from '../../src/pipeline/ktx.ts';
@@ -26,6 +28,7 @@ const { default: sharp } = await import(`file:///${PATHS.gltfModules}sharp/lib/i
   default: (input: string | Buffer, options?: Plane) => Image;
 };
 const ktx = requireTool('ktx', PATHS.ktx, 'KTX');
+const ktxVersion = execFileSync(ktx, ['--version'], { encoding: 'utf8' }).trim();
 const texRoot = resolve(PATHS.raw, 'mg_textures');
 const s4 = resolve(PATHS.build, 's4');
 const outDir = resolve(s4, 'ktx2');
@@ -86,8 +89,10 @@ for (const pick of picks) {
   const { file, channels } = await prepare(plan, pick.dim);
   const out = resolve(outDir, pickFile(pick));
   const args = ktxArgs(plan.cls, channels, pick.recipe);
-  // An encode runs for minutes: a finished file whose recipe, size and sources are unchanged stays.
-  const stamp = JSON.stringify({ args, dim: pick.dim, sources: plan.sources });
+  // An encode runs for minutes, so a finished file stays - but only while the arguments, the image
+  // that was encoded and the encoder are all unchanged. Paths alone would serve a re-exported source
+  // (or a rewritten composite) as if it were current, silently, in the log and in the budget.
+  const stamp = JSON.stringify({ args, dim: pick.dim, sources: plan.sources, tool: ktxVersion, src: createHash('sha256').update(readFileSync(file)).digest('hex') });
   const sidecar = `${out}.args.json`;
   const cached = existsSync(out) && existsSync(sidecar) && readFileSync(sidecar, 'utf8') === stamp;
   if (!cached) {

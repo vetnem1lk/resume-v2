@@ -1,6 +1,6 @@
 // The KTX2 flag table is where the colour-space correctness of every texture is decided.
 import { expect, test } from 'vitest';
-import { TEXTURE_PLAN, TIER1, TIER1_PICK, TIER2, bc7ChainBytes, ktxArgs, textureVramBytes, validateArgs } from '../src/pipeline/ktx.ts';
+import { TEXTURE_PLAN, TIER1, TIER1_PICK, TIER2, bc7ChainBytes, ktxArgs, pickFile, textureVramBytes, validateArgs } from '../src/pipeline/ktx.ts';
 
 test('colour textures are tagged sRGB + BT709 and encoded ETC1S', () => {
   const a = ktxArgs('bc', 3);
@@ -58,6 +58,9 @@ test('the BC7 chain formula reproduces the measured uploads and the tier-1 VRAM 
 
 test('tier 2 is the four founder swaps and every pick names a planned key', () => {
   expect(TIER2.map((p) => `${p.key}@${p.dim}:${p.recipe}`)).toEqual(['head_bc@2048:etc1s', 'clothes_bc@2048:etc1s', 'hair_bca@2048:etc1s', 'clothes_orm@1024:uastc_rdo4']);
+  // The file names are a contract with the runtime swap table in src/scene/assets.ts: an upgraded
+  // codec on a planned size carries the `u` suffix, and nothing else does.
+  expect(TIER2.map(pickFile)).toEqual(['head_bc@2048.ktx2', 'clothes_bc@2048.ktx2', 'hair_bca@2048.ktx2', 'clothes_orm@1024u.ktx2']);
   const planned = new Set(TEXTURE_PLAN.map((p) => p.key));
   for (const pick of [...TIER1, ...TIER2]) expect(planned.has(pick.key)).toBe(true);
 });

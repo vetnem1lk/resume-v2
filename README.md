@@ -127,7 +127,7 @@ resume-v2/
     pipeline/inventory.ts    # measures the whole FBX package, writes the per-file JSONs plus inventory.json/.md
     pipeline/face-proof.ts   # face proof end to end: the UE export, the two Blender jobs, the GLB copy for the viewer
     pipeline/textures.ts     # the used PNG set out of UE, resized and composited, every tier pick encoded,
-                             # validated and cached by its own arguments, then both tiers priced
+                             # validated and cached by its arguments and input bytes, then both tiers priced
     pipeline/clips.ts        # measurement exports per morph tier plus the baked clips, priced into the tier-1 budget
     pipeline/clip-sources.ts # every clip's origin, licence, route onto the skeleton and measured facts; what may ship
     pipeline/ue-template.ts  # copies the engine mannequin example assets into the project, never overwriting
