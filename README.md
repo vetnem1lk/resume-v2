@@ -151,7 +151,8 @@ resume-v2/
     precompress.mjs          # brotli sidecars for every compressible file in dist/
     budget.mjs               # gz9 gates over dist/: entry, the lazy scene chunk, orphan walk, source purity,
                              # both documents, recruiter gate
-    smoke.mjs                # every reachable URL answers with the right type
+    smoke.mjs                # every reachable URL answers with the right type, and the served character
+                             # subset answers a HEAD with its media type and an immutable cache header
     nojs.mjs                 # writes dist-nojs/ = dist/ with every <script> removed (the Lighthouse "JS disabled" target)
     pipeline/paths.ts        # tool and raw-data locations, every one overridable through the environment
     pipeline/run-blender.ts  # one headless Blender job; hands back the job's sentinel line
@@ -238,7 +239,8 @@ resume-v2/
   entry and source purity (three.js only under `src/island/`), no orphan chunk, both documents present, and the
   recruiter gate in markup: name, role, one proof and a one-click CV button in each document
 - `npm run nojs` then `npx vite preview --outDir dist-nojs` - the document with every script removed, the target of the Lighthouse >= 95 audit
-- `npm run smoke -- http://localhost:4173 --local` - every reachable URL answers with the right type
+- `npm run smoke -- http://localhost:4173 --local` - every reachable URL answers with the right type,
+  and the served character subset answers a HEAD with its media type and an immutable cache header
 
 ## 3D character
 
