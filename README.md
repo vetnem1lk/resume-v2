@@ -22,7 +22,7 @@ JavaScript disabled; the 3D scene on top of it is a progressive enhancement.
 
 ## Stack
 
-- Vite 8 · TypeScript 6 · three.js r185 · vitest · oxlint
+- Vite 8 · TypeScript 6 · three.js r186 · vitest · oxlint
 - No UI framework, no CSS framework, no scroll library: the page is one document with
   eight sections.
 
@@ -37,9 +37,11 @@ JavaScript disabled; the 3D scene on top of it is a progressive enhancement.
 
 ### Measured today
 
-| entry JS | entry CSS | document |
-| -------- | --------- | -------- |
-| 437 B    | 3 724 B   | 5 858 B  |
+| entry JS | scene chunk | entry CSS | document |
+| -------- | ----------- | --------- | -------- |
+| 1 381 B  | 53 B        | 3 724 B   | 5 854 B  |
+
+The scene chunk is the stub island; the island tasks fill it and re-measure.
 
 Every number is gzip level 9 over the built file (`zlib.gzipSync(buf, { level: 9 }).length`),
 never the build log's column; `budget.json` carries each one rounded up to the next kibibyte
@@ -65,7 +67,8 @@ resume-v2/
     favicon.svg              # "VK" monogram in oxide on paper
     robots.txt
   src/
-    main.ts                  # progressive enhancement entry: ?lang= redirect, active pill, dev-only ?debug overlay import
+    main.ts                  # progressive enhancement entry: ?lang= redirect, active pill, the gated island
+                             # import() with one late-mount retry, dev-only ?debug overlay import
     content/types.ts         # Content shape + SECTION_IDS
     content/shared.ts        # language-independent facts: CV files + bytes, profile URLs, origin
     content/en.ts  content/ru.ts
@@ -73,6 +76,9 @@ resume-v2/
                              # data-anchor on sections, data-beat on clickables, external links in a new tab
     dom/icons.ts             # inline SVG sprite: vk, telegram, github, gmail (simple-icons), download (Phosphor)
     dom/pills.ts             # IntersectionObserver -> aria-current on the anchor nav; pure helper mostVisible()
+    scene/gate.ts            # whether this page gets the scene at all: breakpoint, WebGL2, data saver - pure
+    scene/boot.ts            # the entry decision with the chunk loader injected: one attempt, never a rejection;
+                             # readEnv() is the one impure line of the gate
     scene/pchip.ts           # monotone cubic (PCHIP) interpolation for the camera anchor table;
                              # sanitizeKeys for live-measured keys
     scene/spiral.ts          # closed-form camera spiral: u -> position and look target, section keys land exactly (D4)
@@ -85,9 +91,12 @@ resume-v2/
     beat/bus.ts              # BEATS vocabulary, Beat, BeatBus (one EventTarget, one event type), the page bus
     beat/clicks.ts           # click delegation: plain-activation filter, the 600 ms hold with a synthetic-click replay
     beat/scroll.ts           # scroll beats from raw u: arrivals both ways, teleport, edges with hysteresis, fling - pure
+    island/island.ts         # the scene island, the only importer of three; lazily imported behind the gate
     debug/overlay.ts         # ?debug overlay (dev server only): measured section keys, the camera spiral;
                              # the scroll driver, the letterform parallax and the beat log drawn over the page
     build/pages.ts           # Vite plugin resumePages(): fills the shells per language (dev + build)
+    build/assets.ts          # Vite plugin assetHost(): serves the licensed subset from outside the repo at
+                             # /g2/ in dev and preview, immutable header and brotli sidecars (never in build)
     styles/tokens.css        # design tokens, font imports, fallback-font metrics
     styles/doc.css           # layout, typography, stage (letterform / contour / light strip / poster), pills, print;
                              # the letterform transform composes the rig's custom properties, identity without JS
@@ -99,8 +108,8 @@ resume-v2/
                              # on-disk size, the JSON/BIN chunk split and the brotli-11 transfer size
   scripts/
     precompress.mjs          # brotli sidecars for every compressible file in dist/
-    budget.mjs               # gz9 gates over dist/, entry purity, no inlined fonts, orphan-chunk check;
-                             # RU document, recruiter gate
+    budget.mjs               # gz9 gates over dist/: entry, the lazy scene chunk, orphan walk, source purity,
+                             # both documents, recruiter gate
     smoke.mjs                # every reachable URL answers with the right type
     nojs.mjs                 # writes dist-nojs/ = dist/ with every <script> removed (the Lighthouse "JS disabled" target)
     pipeline/paths.ts        # tool and raw-data locations, every one overridable through the environment
@@ -120,6 +129,10 @@ resume-v2/
     pipeline/ue/export_clips.py      # the pack's body clips out of UE as bones-only FBX, one per clip
   test/
     content.test.ts  render.test.ts  shell.test.ts  pdf.test.ts  icons.test.ts  pills.test.ts
+    gate.test.ts             # every gate signal alone keeps the poster, and reduced motion is not one of them
+    boot.test.ts             # a refused gate, a rejecting import and a throwing mount all leave the poster
+    three-node.test.ts       # the pinned version pair and the rig's damping against three's own
+    assets.test.ts           # the asset host's path rule: the prefix, inside the root, the served types
     pchip.test.ts            # every key hit exactly, monotone with no overshoot, the clamps and the key sanitiser
     spiral.test.ts           # every key lands exactly, the orbit is monotone, both eye rules, the clamps and the lag
     sections.test.ts         # the anchor table, both key rules on a hand-written layout, the collapsed-section guard
@@ -147,8 +160,9 @@ resume-v2/
 - `npm test` - unit tests: content invariants, render contract, PDF bytes, nav helper, the pure scroll rig
   (interpolant, spiral, section keys, letterform, progress, bus, clicks, beats) and the pipeline arithmetic
 - `npm run lint` / `npm run typecheck`
-- `npm run build` then `npm run gate` - gz9 byte budget from `budget.json`, entry purity, no orphan chunk, both documents present,
-  and the recruiter gate in markup: name, role, one proof and a one-click CV button in each document
+- `npm run build` then `npm run gate` - gz9 byte budget from `budget.json` for the entry and the lazy scene chunk,
+  entry and source purity (three.js only under `src/island/`), no orphan chunk, both documents present, and the
+  recruiter gate in markup: name, role, one proof and a one-click CV button in each document
 - `npm run nojs` then `npx vite preview --outDir dist-nojs` - the document with every script removed, the target of the Lighthouse >= 95 audit
 - `npm run smoke -- http://localhost:4173 --local` - every reachable URL answers with the right type
 
