@@ -102,6 +102,12 @@ resume-v2/
     island/island.ts         # the scene island, the only importer of three; lazily imported behind the gate
     island/loaders.ts        # the page-lifetime loader stack: the KTX2 worker pool and transcoder, the streamed
                              # fetch that reports real bytes, and the parsed character every mount re-uses
+    island/renderer.ts       # the WebGL2 probe and the tier, exact device-pixel sizing, the renderer + lit scene +
+                             # camera handle: environment deferred behind rAF -> setTimeout, context-loss rebuild, teardown
+    island/lights.ts         # the paper look: RoomEnvironment PMREM at 128, hemisphere fill, warm key, cool rim;
+                             # every chosen value in LIGHTS, overridable per mount for the taste round
+    island/patch.ts          # one GLSL patch helper: per-key slots composed in order, a joined program key, owned
+                             # uniforms re-bound on every recompile; applied after any clone
     debug/overlay.ts         # ?debug overlay (dev server only): measured section keys, the camera spiral;
                              # the scroll driver, the letterform parallax and the beat log drawn over the page
     build/pages.ts           # Vite plugin resumePages(): fills the shells per language (dev + build)
@@ -161,6 +167,7 @@ resume-v2/
     three-node.test.ts       # the pinned version pair and the rig's damping against three's own
     loadstate.test.ts        # the phase order, out-of-order events ignored, the hold, failure and the terminal states
     loaders.test.ts          # the byte stream against the pinned denominator, a 404 and an offline reload, the retry
+    patch.test.ts            # the patch helper on a fake material: slot order, joined keys, a repeated key, a missing chunk
     assets.test.ts           # the asset host's path rule: the prefix, inside the root, the served types
     pchip.test.ts            # every key hit exactly, monotone with no overshoot, the clamps and the key sanitiser
     spiral.test.ts           # every key lands exactly, the orbit is monotone, both eye rules, the clamps and the lag
