@@ -139,7 +139,8 @@ resume-v2/
     pipeline/ue/face_proof_synth.py  # synthetic ARKit clip on the idle, exported to FBX with its blend-shape curves
     pipeline/ue/export_textures.py   # the texture set of the shipped look out of UE at source resolution
     pipeline/ue/export_clips.py      # clips out of UE as bones-only FBX, parameterised per clip: the asset,
-                                     # the preview mesh to pin and the compatible-skeleton mark it needs first
+                                     # the preview mesh to pin and the compatible-skeleton mark it needs first,
+                                     # which it saves only onto the backed-up skeleton the job names
   test/
     content.test.ts  render.test.ts  shell.test.ts  pdf.test.ts  icons.test.ts  pills.test.ts
     gate.test.ts             # every gate signal alone keeps the poster, and reduced motion is not one of them

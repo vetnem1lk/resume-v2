@@ -6,8 +6,11 @@ import os
 
 import unreal
 
-JOB = json.loads(os.environ["S2_CLIPS_JOB"])        # {"out": dir, "clips": {id: {"asset", "mesh"}}}
+JOB = json.loads(os.environ["S2_CLIPS_JOB"])        # {"out", "clips": {id: {"asset", "mesh"}}, "allow_skeleton_write"?}
 OUT = JOB["out"]
+# The compatible mark is the only write this job makes into the project, so it is allowed on one
+# asset only: the skeleton the caller names here, which it has backed up before starting the editor.
+ALLOW_SKELETON_WRITE = JOB.get("allow_skeleton_write")
 os.makedirs(OUT, exist_ok=True)
 # Assets copied in after the editor last scanned must be registered before they can be loaded.
 unreal.AssetRegistryHelpers.get_asset_registry().scan_paths_synchronous(["/Game/Characters"], True)
@@ -20,10 +23,14 @@ for name, spec in JOB["clips"].items():
     mesh = eal.load_asset(spec["mesh"])
     anim_skel = anim.get_editor_property("skeleton")
     mesh_skel = mesh.get_editor_property("skeleton")
+    mesh_skel_path = mesh_skel.get_path_name()
     compat = anim_skel != mesh_skel
     if compat:
+        if mesh_skel_path.split(".")[0] != ALLOW_SKELETON_WRITE:
+            raise RuntimeError("clip %s needs a compatible-skeleton write to %s; the job allows %r"
+                               % (name, mesh_skel_path, ALLOW_SKELETON_WRITE))
         mesh_skel.add_compatible_skeleton(anim_skel)            # one side is enough for the editor check
-        eal.save_loaded_asset(mesh_skel)                        # a write to the pack skeleton (backed up by the runner)
+        eal.save_loaded_asset(mesh_skel)                        # the write the caller's backup covers
     anim.set_preview_skeletal_mesh(mesh)                        # reading the property back raises: assert on the export instead
     opt = unreal.FbxExportOption()
     for prop, val in (("export_morph_targets", False), ("export_preview_mesh", False), ("level_of_detail", False), ("collision", False),
@@ -44,5 +51,6 @@ for name, spec in JOB["clips"].items():
                     "length_s": length, "frames": frames, "keys": keys,
                     "fps": round((keys - 1) / length, 3) if length > 0 else 0.0,   # there is no get_frame_rate in 5.8
                     "root_motion": bool(anim.get_editor_property("enable_root_motion")),
-                    "skeleton": anim_skel.get_path_name(), "mesh": mesh.get_path_name(), "compatible_skeleton_added": compat}
+                    "skeleton": anim_skel.get_path_name(), "mesh": mesh.get_path_name(),
+                    "mesh_skeleton": mesh_skel_path, "compatible_skeleton_added": compat}
 unreal.log("S2_RESULT " + json.dumps(result))

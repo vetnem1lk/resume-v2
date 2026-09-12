@@ -17,22 +17,24 @@ const s4 = resolve(PATHS.build, 's4');
 const idleDir = resolve(s4, 'idle');
 mkdirSync(idleDir, { recursive: true });
 
-// Step 0 (founder-approved): the compatible-skeleton call can write the pack skeleton; keep the S2 copy rule.
-const backup = resolve(s4, 'backup');
-for (const rel of ['Content/IdaFaber/Meshes/Girl/SKEL_UE5_F.uasset']) {
-  const src = resolve(projectDir, rel);
-  const dst = resolve(backup, rel);
-  if (!existsSync(dst)) { mkdirSync(resolve(dst, '..'), { recursive: true }); cpSync(src, dst); }
-}
+// Step 0 (founder-approved): the compatible-skeleton call can write the pack skeleton, so copy that
+// asset first; the export script refuses the write unless the job names this same backed-up asset.
+const PACK_MESH = '/Game/IdaFaber/Meshes/Girl/SK_MechanicGirl_03';
+const PACK_SKELETON = '/Game/IdaFaber/Meshes/Girl/SKEL_UE5_F';
+const skeletonFile = `Content/${PACK_SKELETON.slice('/Game/'.length)}.uasset`;
+const backup = resolve(s4, 'backup', skeletonFile);
+if (!existsSync(backup)) { mkdirSync(resolve(backup, '..'), { recursive: true }); cpSync(resolve(projectDir, skeletonFile), backup); }
 
 const idle = clipSource('Idle');
 console.log('template copy:', JSON.stringify(copyMannequinTemplate(PATHS.ueEngine, projectDir)));
 const fbx = resolve(idleDir, 'Idle.fbx');
-process.env.S2_CLIPS_JOB = JSON.stringify({ out: idleDir.replace(/\\/g, '/'), clips: { Idle: { asset: idle.assetPath, mesh: '/Game/IdaFaber/Meshes/Girl/SK_MechanicGirl_03' } } });
+process.env.S2_CLIPS_JOB = JSON.stringify({ out: idleDir.replace(/\\/g, '/'), allow_skeleton_write: PACK_SKELETON, clips: { Idle: { asset: idle.assetPath, mesh: PACK_MESH } } });
 const log = resolve(idleDir, 'idle.log');
-const ue = await runUe(resolve(REPO_ROOT, 'scripts/pipeline/ue/export_clips.py'), log, [fbx]) as Record<string, { ok: boolean; bytes: number; frames: number; keys: number; fps: number; root_motion: boolean }>;
+const ue = await runUe(resolve(REPO_ROOT, 'scripts/pipeline/ue/export_clips.py'), log, [fbx]) as Record<string, { ok: boolean; bytes: number; frames: number; keys: number; fps: number; root_motion: boolean; mesh_skeleton: string }>;
 const got = ue.Idle;
 if (!got?.ok || got.bytes === 0 || /preview mesh is not set/i.test(readFileSync(log, 'utf8'))) throw new Error(`idle export failed: ${JSON.stringify(got)}`);
+// The run has to prove the backup covered the asset the write could touch.
+if (got.mesh_skeleton.split('.')[0] !== PACK_SKELETON) throw new Error(`the pinned mesh sits on ${got.mesh_skeleton}, not the backed-up ${PACK_SKELETON}`);
 const want = idle.measured;
 if (want && (got.frames !== want.frames || got.keys !== want.keys || Math.round(got.fps) !== want.fps || got.root_motion !== want.rootMotion)) {
   throw new Error(`idle export disagrees with the registry: ${JSON.stringify(got)} vs ${JSON.stringify(want)}`);
