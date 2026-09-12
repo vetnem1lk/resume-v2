@@ -16,7 +16,8 @@
     "pipeline:inventory": "node scripts/pipeline/inventory.ts",
     "pipeline:face-proof": "node scripts/pipeline/face-proof.ts",
     "pipeline:textures": "node scripts/pipeline/textures.ts",
-    "pipeline:clips": "node scripts/pipeline/clips.ts"
+    "pipeline:clips": "node scripts/pipeline/clips.ts",
+    "pipeline:idle": "node scripts/pipeline/idle.ts"
   },
   "dependencies": {
     "@fontsource-variable/jetbrains-mono": "5.3.0",

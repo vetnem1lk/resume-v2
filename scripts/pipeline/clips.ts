@@ -23,7 +23,10 @@ const measureDir = resolve(s2, 'measure');
 mkdirSync(measureDir, { recursive: true });
 const CLIPS = ['Idle', 'Pose_01', 'Pose_02', 'Walk_Fwd', 'Run_Fwd'];
 if (CLIPS.some((c) => !existsSync(resolve(clipsDir, `${c}.fbx`)))) {
-  process.env.S2_CLIPS_OUT = clipsDir.replace(/\\/g, '/');
+  const MESH = '/Game/IdaFaber/Meshes/Girl/SK_MechanicGirl_03';
+  const ROOT = '/Game/IdaFaber/Demo/Animations/Girl/';
+  const ASSETS: Record<string, string> = { Idle: 'AS_UE5_MF_Idle', Pose_01: 'AS_Pose_F_01', Pose_02: 'AS_Pose_F_02', Walk_Fwd: 'AS_UE5_MF_Walk_Fwd', Run_Fwd: 'AS_UE5_MF_Run_Fwd' };
+  process.env.S2_CLIPS_JOB = JSON.stringify({ out: clipsDir.replace(/\\/g, '/'), clips: Object.fromEntries(CLIPS.map((c) => [c, { asset: ROOT + ASSETS[c], mesh: MESH }])) });
   console.log('UE clips:', JSON.stringify(await runUe(resolve(REPO_ROOT, 'scripts/pipeline/ue/export_clips.py'), resolve(s2, 'clips.log'), CLIPS.map((c) => resolve(clipsDir, `${c}.fbx`)))));
 }
 const tiersFile = resolve(s2, 'tiers.json');

@@ -127,14 +127,19 @@ resume-v2/
     pipeline/face-proof.ts   # face proof end to end: the UE export, the two Blender jobs, the GLB copy for the viewer
     pipeline/textures.ts     # the used PNG set out of UE, resized and composited, encoded and validated, then priced
     pipeline/clips.ts        # measurement exports per morph tier plus the baked clips, priced into the tier-1 budget
+    pipeline/clip-sources.ts # every clip's origin, licence, route onto the skeleton and measured facts; what may ship
+    pipeline/ue-template.ts  # copies the engine mannequin example assets into the project, never overwriting
+    pipeline/idle.ts         # the engine idle onto the character skeleton: backup, template copy, export, rig parity
     pipeline/blender/fbxlib.py       # shared Blender helpers: import, mesh stats, bound bones, shape-key deltas, GLB JSON
     pipeline/blender/inventory.py    # one fresh scene per FBX, one JSON per file, one sentinel line
     pipeline/blender/face_proof.py   # proves the shape-key f-curves survived the FBX, exports the GLB, writes the verdict
     pipeline/blender/measure.py      # export hygiene, morph pruning per tier, GLB exports and the name-keyed clip bake
+    pipeline/blender/rig_parity.py   # rest-pose parity of a clip rig against the look rig, and the rotation-only bake
     pipeline/blender/llf_csv.py      # Live Link Face CSV -> shape-key f-curves, no add-on, with a synthetic self-test
     pipeline/ue/face_proof_synth.py  # synthetic ARKit clip on the idle, exported to FBX with its blend-shape curves
     pipeline/ue/export_textures.py   # the texture set of the shipped look out of UE at source resolution
-    pipeline/ue/export_clips.py      # the pack's body clips out of UE as bones-only FBX, one per clip
+    pipeline/ue/export_clips.py      # clips out of UE as bones-only FBX, parameterised per clip: the asset,
+                                     # the preview mesh to pin and the compatible-skeleton mark it needs first
   test/
     content.test.ts  render.test.ts  shell.test.ts  pdf.test.ts  icons.test.ts  pills.test.ts
     gate.test.ts             # every gate signal alone keeps the poster, and reduced motion is not one of them
@@ -154,6 +159,7 @@ resume-v2/
     clicks.test.ts           # the click decisions without a DOM: plain activation, holdable links, the hold clamp
     scroll-beats.test.ts     # arrivals both ways, one arrival on a teleport, edge hysteresis, the fling window
     paths.test.ts            # path defaults and environment overrides
+    clip-sources.test.ts     # the clip registry: unique ids, the shipped idle's measured facts, the refusals
     repo.test.ts             # the guard: no licensed binary is ever tracked by git
     inventory.test.ts        # the inventory summary arithmetic and the morph keep-list tiers
     vram.test.ts             # the morph VRAM formula, pinned at and past the maxTextureSize wrap
@@ -202,8 +208,10 @@ None of it imports three.js. In development, `/?debug` draws the whole rig over 
 scripts run outside the site build and never write into the repository: Blender 5.2 does the
 inventory, pruning and glTF export, Unreal Engine 5.8 exports textures and animation clips,
 KTX-Software encodes textures, gltf-transform accounts the bytes. Tool locations are read from
-the environment (`BLENDER`, `UE_CMD`, `UE_PROJECT`, `KTX`, `MG_RAW`, `GLTF_MODULES`), with
+the environment (`BLENDER`, `UE_CMD`, `UE_ENGINE`, `UE_PROJECT`, `KTX`, `MG_RAW`, `GLTF_MODULES`), with
 defaults for standard installs. `npm run pipeline:inventory` measures the package;
 `pipeline:face-proof` proves that facial animation curves survive the whole chain into a
 `weights` track that three.js plays (`tools/face-proof.html`); `pipeline:textures` and
-`pipeline:clips` produce the byte budget the design decisions are made against.
+`pipeline:clips` produce the byte budget the design decisions are made against;
+`pipeline:idle` brings the engine idle onto the character skeleton - template copy, compatible
+skeleton, bones-only export - and measures the rest-pose parity of the two rigs.
