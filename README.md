@@ -82,11 +82,13 @@ resume-v2/
     scene/pchip.ts           # monotone cubic (PCHIP) interpolation for the camera anchor table;
                              # sanitizeKeys for live-measured keys
     scene/spiral.ts          # closed-form camera spiral: u -> position and look target, section keys land exactly (D4)
-    scene/sections.ts        # ANCHOR_Y per section, the measured scroll keys (landing / centre rule), the DOM read
+    scene/sections.ts        # ANCHOR_Y per section, the measured scroll keys (landing / centre rule), the DOM read;
+                             # the reference keys the camera falls back to when the measurement collapses
     scene/letterform.ts      # parallax pose of the hatched mark (turn, rise, zoom) - pure;
                              # letterformVars() are the CSS custom properties doc.css composes into the transform
     scroll/progress.ts       # scroll progress, camera-settle detection and damping - pure
-    scroll/driver.ts         # rAF driver: reads scrollY first, dirty-flag layout, snap on hashchange, visibility resync
+    scroll/driver.ts         # rAF driver: reads scrollY first, dirty-flag layout, snap on hashchange, visibility resync;
+                             # loop: false and the measure moment hand the stepping to a scene loop
     scroll/media.ts          # reduced-motion and fine-pointer queries
     beat/bus.ts              # BEATS vocabulary, Beat, BeatBus (one EventTarget, one event type), the page bus
     beat/clicks.ts           # click delegation: plain-activation filter, the 600 ms hold with a synthetic-click replay
@@ -101,7 +103,7 @@ resume-v2/
     styles/doc.css           # layout, typography, stage (letterform / contour / light strip / poster), pills, print;
                              # the letterform transform composes the rig's custom properties, identity without JS
     pipeline/inventory.ts    # Blender inventory JSON -> object rows, module-set totals, morph ranking, markdown
-    pipeline/morphs.ts       # the ARKit-52 vocabulary and the keep-list tiers the morph budget is priced at
+    pipeline/morphs.ts       # the ARKit-52 vocabulary, the keep-list tiers the morph budget is priced at, the shipped 24
     pipeline/vram.ts         # exact morph-texture VRAM: the RGBA32F row wrap the naive verts*slots*16*N misses
     pipeline/ktx.ts          # KTX2 encode recipe per texture class, the texture plan and the tier-1 pick
     pipeline/glb.ts          # gltf-transform accounting of a GLB: decoded bytes per mesh/morph/clip next to the
@@ -138,6 +140,8 @@ resume-v2/
     sections.test.ts         # the anchor table, both key rules on a hand-written layout, the collapsed-section guard
     letterform.test.ts       # the identity at the top, the clamped ends, monotone turn and rise, the fixed-decimal vars
     progress.test.ts         # the clamps and the NaN guards, the settle hold, frame-rate-independent damping
+    driver.test.ts           # the rAF loop under a fake window: the stepped mode, the measure moments,
+                             # the rejected options and a throwing consumer
     bus.test.ts              # the closed vocabulary, named and wildcard delivery, signal unsubscribe, nesting order
     clicks.test.ts           # the click decisions without a DOM: plain activation, holdable links, the hold clamp
     scroll-beats.test.ts     # arrivals both ways, one arrival on a teleport, edge hysteresis, the fling window

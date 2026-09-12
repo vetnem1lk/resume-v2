@@ -2,7 +2,7 @@
 // layout all move them. Pin the arithmetic of both key rules on a hand-written layout.
 import { expect, test } from 'vitest';
 import { SECTION_IDS } from '../src/content/types.ts';
-import { ANCHOR_Y, sectionKeys, type SectionBox } from '../src/scene/sections.ts';
+import { ANCHOR_Y, FALLBACK_KEYS, sectionKeys, usableKeys, type SectionBox, type SectionKey } from '../src/scene/sections.ts';
 
 // Desktop-shaped: eight blocks after a 56 px strip, viewport 900, range 6356, scroll margin 88.
 const BOXES: readonly SectionBox[] = SECTION_IDS.map((id, i) => ({
@@ -46,4 +46,18 @@ test('keys stay strictly increasing and an empty range yields no keys', () => {
   const collapsed = BOXES.map((b, i) => (i === 2 ? { ...b, top: BOXES[1].top } : b));
   expect(sectionKeys(collapsed, LAYOUT).map((k) => k.id)).not.toContain('projects');
   expect(sectionKeys(BOXES, { range: 0, viewport: 900 })).toEqual([]);
+});
+
+test('the reference keys are strictly increasing inside [0,1] and carry the anchor heights', () => {
+  expect(FALLBACK_KEYS).toHaveLength(8);
+  expect(FALLBACK_KEYS.map((k) => k.y)).toEqual(FALLBACK_KEYS.map((k) => ANCHOR_Y[k.id]));
+  expect(FALLBACK_KEYS.every((k) => k.u >= 0 && k.u <= 1)).toBe(true);
+  expect(FALLBACK_KEYS.every((k, i) => i === 0 || k.u > FALLBACK_KEYS[i - 1]!.u)).toBe(true);
+});
+
+test('fewer than two measured keys means the reference path, two or more means the measurement', () => {
+  const two: SectionKey[] = [{ id: 'top', u: 0, y: 1.7 }, { id: 'contact', u: 1, y: 0 }];
+  expect(usableKeys([])).toBe(FALLBACK_KEYS);
+  expect(usableKeys([two[0]!])).toBe(FALLBACK_KEYS);
+  expect(usableKeys(two)).toBe(two);
 });

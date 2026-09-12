@@ -2,7 +2,7 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { moduleSet, morphRanking, rows, toMarkdown, type InventoryFile } from '../src/pipeline/inventory.ts';
-import { ARKIT_52, EYE_LOOK, KEEP_18, KEEP_24, KEEP_SPEC } from '../src/pipeline/morphs.ts';
+import { ARKIT_52, EYE_LOOK, KEEP_18, KEEP_24, KEEP_SPEC, SHIP_24, TIERS } from '../src/pipeline/morphs.ts';
 
 const inv = JSON.parse(readFileSync(new URL('./fixtures/inventory-mini.json', import.meta.url), 'utf8')) as InventoryFile[];
 
@@ -44,4 +44,14 @@ test('markdown carries the module-set header and one line per object of that set
   expect(md).toContain('30 verts');
   // The other file also holds a SK_MECHANICGIRL_HEAD: rows under the header must be this set's.
   expect(md.match(/^\| SK_MECHANICGIRL_/gm)).toHaveLength(2);
+});
+
+test('the shipped 24 are KEEP_18 plus six named shapes, all ARKit names, none an eyeLook', () => {
+  expect(SHIP_24).toHaveLength(24);
+  expect(new Set(SHIP_24).size).toBe(24);
+  expect(SHIP_24.slice(0, 18)).toEqual(KEEP_18);
+  expect(SHIP_24.slice(18)).toEqual(['mouthClose', 'mouthLeft', 'mouthRight', 'cheekPuff', 'browOuterUpLeft', 'browOuterUpRight']);
+  for (const name of SHIP_24) expect(ARKIT_52).toContain(name);
+  expect(SHIP_24.some((n) => n.startsWith('eyeLook'))).toBe(false);
+  expect(TIERS.ship24).toBe(SHIP_24);
 });
