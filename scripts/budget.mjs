@@ -1,9 +1,10 @@
 // Byte gates over dist/. Measures gz9 (zlib level 9, the number the README quotes,
 // not the build log's column) for the entry assets referenced by dist/index.html,
 // proves the entry contains no three.js, that no font was base64-inlined into the
-// stylesheet, that the Russian document was emitted, and that both documents carry the
-// recruiter gate's four elements in markup. Exit code = failures.
-import { existsSync, readFileSync } from 'node:fs';
+// stylesheet, that every emitted JS chunk is referenced by the document, that the
+// Russian document was emitted, and that both documents carry the recruiter gate's
+// four elements in markup. Exit code = failures.
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 
@@ -43,6 +44,12 @@ for (const r of css) {
   check(`no inlined font in ${r}`, !/data:(?:font|application\/(?:x-)?font)/.test(src));
 }
 
+// Every emitted JS chunk must be reachable from a document: a DEV-only island that survives into
+// dist/ is a build bug, and the checks above only read what the document references.
+const emitted = readdirSync(`${dist}assets`).filter((f) => f.endsWith('.js'));
+const reachable = new Set(js.map((r) => r.split('/').at(-1)));
+check('no orphan js chunk', emitted.every((f) => reachable.has(f)), emitted.join(' '));
+
 const ru = `${dist}ru/index.html`;
 const ruHtml = existsSync(ru) ? readFileSync(ru, 'utf8') : '';
 check('ru document emitted', ruHtml.includes('<html lang="ru"'));
@@ -56,11 +63,12 @@ check('no em-dash in either document', !/—/.test(html + ruHtml));
 // removes scripts only, so what passes here is what a visitor with JS off gets.
 const RECRUITER = [
   // [^<] so an empty element does not pass on its own closing tag; the proof needs a
-  // sentence, not a word, hence the 80 characters of uninterrupted text.
+  // sentence, not a word, hence the 80 characters of uninterrupted text. The CV button
+  // carries interaction attributes after the download, which stay outside the match.
   ['name', /<h1[^>]*>\s*[^<\s]/],
   ['role', /class="role"[^>]*>\s*[^<\s]/],
   ['proof', /<p class="profile">[^<]{80}/],
-  ['one-click CV', /<a class="cv-button" href="\/cv\/[^"]+\.pdf" download>/],
+  ['one-click CV', /<a class="cv-button" href="\/cv\/[^"]+\.pdf" download[^>]*>/],
 ];
 for (const [doc, src] of [['index.html', html], ['ru/index.html', ruHtml]]) {
   const missing = RECRUITER.filter(([, re]) => !re.test(src)).map(([label]) => label);

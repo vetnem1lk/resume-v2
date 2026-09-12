@@ -6,6 +6,7 @@ import type { Achievement, Content, Job, Link, Project, SectionId } from '../con
 import { SECTION_IDS } from '../content/types.ts';
 import type { IconId } from './icons.ts';
 import { renderSprite } from './icons.ts';
+import { ANCHOR_Y } from '../scene/sections.ts';
 
 export function escape(s: string): string {
   return s.replaceAll('&', '&amp;').replaceAll('<', '&lt;').replaceAll('>', '&gt;').replaceAll('"', '&quot;');
@@ -35,18 +36,21 @@ export function renderHead(c: Content): string {
 }
 
 const icon = (id: IconId) => `<svg class="icon" width="20" height="20" aria-hidden="true"><use href="#i-${id}"></use></svg>`;
-const link = (l: Link) => `<a href="${e(l.href)}">${e(l.label)}</a>`;
+// beat: the interaction name the character island subscribes to (src/beat/bus.ts BEATS). Every
+// external link opens in a new tab so the resume stays on screen; target="_blank" implies noopener.
+const link = (l: Link, beat?: string) =>
+  `<a href="${e(l.href)}"${beat ? ` data-beat="${beat}"` : ''} target="_blank">${e(l.label)}</a>`;
 const visualCv = (c: Content) => CV_FILES.find((f) => f.key === c.lang)!;
 
 function strip(c: Content): string {
   return `<header class="strip">
   <p class="strip__who"><span class="strip__name">${e(c.header.name)}</span> <span class="strip__role">${e(c.header.role)}</span></p>
   <p class="strip__quick">
-    <a class="cv-button" href="${visualCv(c).file}" download>${icon('download')}<span>${e(c.ui.cvButton)}</span></a>
-    <a class="icon-link" rel="me" href="${PROFILES.telegram}">${icon('telegram')}<span>${e(c.ui.icons.telegram)}</span></a>
-    <a class="icon-link" rel="me" href="${PROFILES.github}">${icon('github')}<span>${e(c.ui.icons.github)}</span></a>
-    <a class="icon-link" href="${PROFILES.email}">${icon('gmail')}<span>${e(c.ui.icons.email)}</span></a>
-    <a class="lang" href="${c.ui.lang.href}" hreflang="${c.ui.lang.hreflang}" lang="${c.ui.lang.hreflang}" title="${e(c.ui.lang.title)}">${e(c.ui.lang.label)}</a>
+    <a class="cv-button" href="${visualCv(c).file}" download data-beat="cv:${c.lang}">${icon('download')}<span>${e(c.ui.cvButton)}</span></a>
+    <a class="icon-link" rel="me" href="${PROFILES.telegram}" target="_blank" data-beat="contact:telegram">${icon('telegram')}<span>${e(c.ui.icons.telegram)}</span></a>
+    <a class="icon-link" rel="me" href="${PROFILES.github}" target="_blank" data-beat="contact:github">${icon('github')}<span>${e(c.ui.icons.github)}</span></a>
+    <a class="icon-link" href="${PROFILES.email}" data-beat="contact:email">${icon('gmail')}<span>${e(c.ui.icons.email)}</span></a>
+    <a class="lang" href="${c.ui.lang.href}" hreflang="${c.ui.lang.hreflang}" lang="${c.ui.lang.hreflang}" title="${e(c.ui.lang.title)}" data-beat="lang:${c.ui.lang.hreflang}">${e(c.ui.lang.label)}</a>
   </p>
 </header>`;
 }
@@ -57,6 +61,8 @@ function strip(c: Content): string {
 // in flow, and ahead of the document it filled the whole first screen with decoration,
 // leaving the name and role to the strip alone. Fixed on wide screens, where document
 // order does not reach the layout.
+// Every section carries `data-anchor`, the body height the camera frames there (design SSoT
+// D4); the scroll keys themselves are measured at runtime, never written into the markup.
 // Paint (fill, stroke, colour) is applied from doc.css: var() inside an SVG presentation
 // attribute is not guaranteed to resolve, CSS rules are, and CSS beats the attribute.
 // The letterform is an outline, not live <text>: Chrome records SVG text as a
@@ -80,21 +86,21 @@ function stage(): string {
 }
 
 function pills(c: Content): string {
-  const items = SECTION_IDS.map((id) => `<a href="#${id}">${e(c.ui.nav[id])}</a>`).join('');
+  const items = SECTION_IDS.map((id) => `<a href="#${id}" data-beat="nav:${id}">${e(c.ui.nav[id])}</a>`).join('');
   return `<nav class="pills" aria-label="${e(c.ui.navLabel)}">${items}</nav>`;
 }
 
 const block = (id: Exclude<SectionId, 'top'>, c: Content, inner: string) =>
-  `<section class="block" id="${id}" aria-labelledby="h-${id}"><h2 class="block__head" id="h-${id}">${e(c.ui.sections[id])}</h2>${inner}</section>`;
+  `<section class="block" id="${id}" data-anchor="${ANCHOR_Y[id]}" aria-labelledby="h-${id}"><h2 class="block__head" id="h-${id}">${e(c.ui.sections[id])}</h2>${inner}</section>`;
 
 function header(c: Content): string {
   const meta = c.header.meta.map((m, i) => `<li${i === 0 ? ' class="meta--level"' : ''}>${e(m)}</li>`).join('');
-  return `<section class="block block--top" id="top"><h1>${e(c.header.name)}</h1><p class="role">${e(c.header.role)}</p><ul class="meta">${meta}</ul></section>`;
+  return `<section class="block block--top" id="top" data-anchor="${ANCHOR_Y.top}"><h1>${e(c.header.name)}</h1><p class="role">${e(c.header.role)}</p><ul class="meta">${meta}</ul></section>`;
 }
 
 function project(p: Project): string {
   const bullets = p.bullets.length ? `<ul>${p.bullets.map((b) => `<li>${e(b)}</li>`).join('')}</ul>` : '';
-  const tail = p.link ? ` <span class="proj__link">${link(p.link)}</span>` : '';
+  const tail = p.link ? ` <span class="proj__link">${link(p.link, 'project:link')}</span>` : '';
   const tech = p.tech ? `<p class="tech">${e(p.tech)}</p>` : '';
   return `<article class="proj"><p class="proj__head"><strong class="proj__name">${e(p.name)}</strong> <span class="proj__tagline">${e(p.tagline)}</span>${tail}</p>${bullets}${tech}</article>`;
 }
@@ -114,17 +120,17 @@ function achievement(a: Achievement): string {
 }
 
 function card(c: Content): string {
-  const cv = CV_FILES.map((f, i) => `<li><a href="${f.file}" download>${e(c.ui.cvFiles[i])}</a></li>`).join('');
+  const cv = CV_FILES.map((f, i) => `<li><a href="${f.file}" download data-beat="cv:${f.key}">${e(c.ui.cvFiles[i])}</a></li>`).join('');
   return `<div class="card">
   <p class="card__name">${e(c.contact.card)}</p>
   <ul class="card__icons">
-    <li><a class="icon-link" rel="me" href="${PROFILES.vk}">${icon('vk')}<span>${e(c.ui.icons.vk)}</span></a></li>
-    <li><a class="icon-link" rel="me" href="${PROFILES.telegram}">${icon('telegram')}<span>${e(c.ui.icons.telegram)}</span></a></li>
-    <li><a class="icon-link" rel="me" href="${PROFILES.github}">${icon('github')}<span>${e(c.ui.icons.github)}</span></a></li>
+    <li><a class="icon-link" rel="me" href="${PROFILES.vk}" target="_blank" data-beat="contact:vk">${icon('vk')}<span>${e(c.ui.icons.vk)}</span></a></li>
+    <li><a class="icon-link" rel="me" href="${PROFILES.telegram}" target="_blank" data-beat="contact:telegram">${icon('telegram')}<span>${e(c.ui.icons.telegram)}</span></a></li>
+    <li><a class="icon-link" rel="me" href="${PROFILES.github}" target="_blank" data-beat="contact:github">${icon('github')}<span>${e(c.ui.icons.github)}</span></a></li>
     <li><details class="cv-menu"><summary class="icon-link">${icon('download')}<span>${e(c.ui.cvMenu)}</span></summary><ul>${cv}</ul></details></li>
-    <li><a class="icon-link" href="${PROFILES.email}">${icon('gmail')}<span>${e(c.ui.icons.email)}</span></a></li>
+    <li><a class="icon-link" href="${PROFILES.email}" data-beat="contact:email">${icon('gmail')}<span>${e(c.ui.icons.email)}</span></a></li>
   </ul>
-  <p class="card__v1"><a href="${PROFILES.v1}">${e(c.ui.icons.v1)}</a></p>
+  <p class="card__v1"><a href="${PROFILES.v1}" target="_blank" data-beat="link:v1">${e(c.ui.icons.v1)}</a></p>
 </div>`;
 }
 
@@ -139,7 +145,7 @@ ${pills(c)}
 ${header(c)}
 ${stage()}
 ${block('profile', c, `<p class="profile">${e(c.profile)}</p>`)}
-${block('projects', c, `${c.projects.map(project).join('')}<p class="more">${e(c.projectsMore.text)} → ${link(c.projectsMore.link)}</p>`)}
+${block('projects', c, `${c.projects.map(project).join('')}<p class="more">${e(c.projectsMore.text)} → ${link(c.projectsMore.link, 'link:more')}</p>`)}
 ${block('experience', c, c.jobs.map(job).join(''))}
 ${block('skills', c, `<ul class="chips">${chips}</ul>`)}
 ${block('education', c, `<p class="edu"><strong>${e(edu.school)}</strong><span class="job__when">${e(edu.year)}</span></p><p class="edu__program">${e(edu.program)} <span class="edu__place">${e(edu.place)}</span></p><p class="certs"><span class="certs__label">${e(edu.certs.label)}</span> ${edu.certs.items.map(e).join(' · ')}</p>`)}

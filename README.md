@@ -4,7 +4,8 @@ Scroll-driven 3D resume of **Vladislav Klimentev** - C++/Qt developer moving int
 development (tools / gameplay track). The resume itself is plain HTML that works with
 JavaScript disabled; the 3D scene on top of it is a progressive enhancement.
 
-> Status: first slice shipped: the zero-JS resume.
+> Status: shipped so far - the zero-JS resume, the asset pipeline and the scroll rig;
+> the three.js island is the next slice.
 >
 > Previous site, still live: https://me.cryzothic.tech
 
@@ -38,7 +39,7 @@ JavaScript disabled; the 3D scene on top of it is a progressive enhancement.
 
 | entry JS | entry CSS | document |
 | -------- | --------- | -------- |
-| 437 B    | 3 669 B   | 5 690 B  |
+| 437 B    | 3 724 B   | 5 858 B  |
 
 Every number is gzip level 9 over the built file (`zlib.gzipSync(buf, { level: 9 }).length`),
 never the build log's column; `budget.json` carries each one rounded up to the next kibibyte
@@ -64,16 +65,32 @@ resume-v2/
     favicon.svg              # "VK" monogram in oxide on paper
     robots.txt
   src/
-    main.ts                  # progressive enhancement entry: ?lang= redirect, active pill
+    main.ts                  # progressive enhancement entry: ?lang= redirect, active pill, dev-only ?debug overlay import
     content/types.ts         # Content shape + SECTION_IDS
     content/shared.ts        # language-independent facts: CV files + bytes, profile URLs, origin
     content/en.ts  content/ru.ts
-    dom/render.ts            # Content -> { head, body } HTML strings, escaped
+    dom/render.ts            # Content -> { head, body } HTML strings, escaped;
+                             # data-anchor on sections, data-beat on clickables, external links in a new tab
     dom/icons.ts             # inline SVG sprite: vk, telegram, github, gmail (simple-icons), download (Phosphor)
     dom/pills.ts             # IntersectionObserver -> aria-current on the anchor nav; pure helper mostVisible()
+    scene/pchip.ts           # monotone cubic (PCHIP) interpolation for the camera anchor table;
+                             # sanitizeKeys for live-measured keys
+    scene/spiral.ts          # closed-form camera spiral: u -> position and look target, section keys land exactly (D4)
+    scene/sections.ts        # ANCHOR_Y per section, the measured scroll keys (landing / centre rule), the DOM read
+    scene/letterform.ts      # parallax pose of the hatched mark (turn, rise, zoom) - pure;
+                             # letterformVars() are the CSS custom properties doc.css composes into the transform
+    scroll/progress.ts       # scroll progress, camera-settle detection and damping - pure
+    scroll/driver.ts         # rAF driver: reads scrollY first, dirty-flag layout, snap on hashchange, visibility resync
+    scroll/media.ts          # reduced-motion and fine-pointer queries
+    beat/bus.ts              # BEATS vocabulary, Beat, BeatBus (one EventTarget, one event type), the page bus
+    beat/clicks.ts           # click delegation: plain-activation filter, the 600 ms hold with a synthetic-click replay
+    beat/scroll.ts           # scroll beats from raw u: arrivals both ways, teleport, edges with hysteresis, fling - pure
+    debug/overlay.ts         # ?debug overlay (dev server only): measured section keys, the camera spiral;
+                             # the scroll driver, the letterform parallax and the beat log drawn over the page
     build/pages.ts           # Vite plugin resumePages(): fills the shells per language (dev + build)
     styles/tokens.css        # design tokens, font imports, fallback-font metrics
-    styles/doc.css           # layout, typography, stage (letterform / contour / light strip / poster), pills, print
+    styles/doc.css           # layout, typography, stage (letterform / contour / light strip / poster), pills, print;
+                             # the letterform transform composes the rig's custom properties, identity without JS
     pipeline/inventory.ts    # Blender inventory JSON -> object rows, module-set totals, morph ranking, markdown
     pipeline/morphs.ts       # the ARKit-52 vocabulary and the keep-list tiers the morph budget is priced at
     pipeline/vram.ts         # exact morph-texture VRAM: the RGBA32F row wrap the naive verts*slots*16*N misses
@@ -82,7 +99,8 @@ resume-v2/
                              # on-disk size, the JSON/BIN chunk split and the brotli-11 transfer size
   scripts/
     precompress.mjs          # brotli sidecars for every compressible file in dist/
-    budget.mjs               # gz9 gates over dist/, entry purity, no inlined fonts, RU document, recruiter gate
+    budget.mjs               # gz9 gates over dist/, entry purity, no inlined fonts, orphan-chunk check;
+                             # RU document, recruiter gate
     smoke.mjs                # every reachable URL answers with the right type
     nojs.mjs                 # writes dist-nojs/ = dist/ with every <script> removed (the Lighthouse "JS disabled" target)
     pipeline/paths.ts        # tool and raw-data locations, every one overridable through the environment
@@ -102,6 +120,14 @@ resume-v2/
     pipeline/ue/export_clips.py      # the pack's body clips out of UE as bones-only FBX, one per clip
   test/
     content.test.ts  render.test.ts  shell.test.ts  pdf.test.ts  icons.test.ts  pills.test.ts
+    pchip.test.ts            # every key hit exactly, monotone with no overshoot, the clamps and the key sanitiser
+    spiral.test.ts           # every key lands exactly, the orbit is monotone, both eye rules, the clamps and the lag
+    sections.test.ts         # the anchor table, both key rules on a hand-written layout, the collapsed-section guard
+    letterform.test.ts       # the identity at the top, the clamped ends, monotone turn and rise, the fixed-decimal vars
+    progress.test.ts         # the clamps and the NaN guards, the settle hold, frame-rate-independent damping
+    bus.test.ts              # the closed vocabulary, named and wildcard delivery, signal unsubscribe, nesting order
+    clicks.test.ts           # the click decisions without a DOM: plain activation, holdable links, the hold clamp
+    scroll-beats.test.ts     # arrivals both ways, one arrival on a teleport, edge hysteresis, the fling window
     paths.test.ts            # path defaults and environment overrides
     repo.test.ts             # the guard: no licensed binary is ever tracked by git
     inventory.test.ts        # the inventory summary arithmetic and the morph keep-list tiers
@@ -118,9 +144,10 @@ resume-v2/
 
 ## Gates
 
-- `npm test` - unit tests (content invariants, render contract, PDF bytes, nav helper)
+- `npm test` - unit tests: content invariants, render contract, PDF bytes, nav helper, the pure scroll rig
+  (interpolant, spiral, section keys, letterform, progress, bus, clicks, beats) and the pipeline arithmetic
 - `npm run lint` / `npm run typecheck`
-- `npm run build` then `npm run gate` - gz9 byte budget from `budget.json`, entry purity, both documents present,
+- `npm run build` then `npm run gate` - gz9 byte budget from `budget.json`, entry purity, no orphan chunk, both documents present,
   and the recruiter gate in markup: name, role, one proof and a one-click CV button in each document
 - `npm run nojs` then `npx vite preview --outDir dist-nojs` - the document with every script removed, the target of the Lighthouse >= 95 audit
 - `npm run smoke -- http://localhost:4173 --local` - every reachable URL answers with the right type
@@ -131,6 +158,17 @@ The character is the "Mechanic Girl" model by IdaFaber (licensed content). The s
 only an optimised runtime subset of it; the asset is not part of this repository and may not
 be extracted or reused outside this site. The asset pipeline (FBX to glTF optimisation,
 KTX2 textures, meshopt), the scroll choreography, the gaze rig and the loader are my own work.
+
+## Scroll rig
+
+The camera is a read-only function of the document scroll. `src/scene/` holds the pure
+mathematics (a monotone anchor interpolant, the closed-form spiral, the section anchor table
+whose scroll keys are measured from the live layout), `src/scroll/` the frame driver (scroll
+progress, camera settle, damping), and `src/beat/` the interaction bus that the character
+subscribes to (clicks on `data-beat` anchors, with a bounded hold before external links open,
+and scroll-derived beats). Every motion is a pure pose function of the frame; the page's
+letterform, for instance, turns and rises with the camera through three CSS custom properties.
+None of it imports three.js. In development, `/?debug` draws the whole rig over the page.
 
 ## Asset pipeline
 
