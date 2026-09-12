@@ -16,14 +16,19 @@
     "pipeline:inventory": "node scripts/pipeline/inventory.ts",
     "pipeline:face-proof": "node scripts/pipeline/face-proof.ts",
     "pipeline:textures": "node scripts/pipeline/textures.ts",
-    "pipeline:clips": "node scripts/pipeline/clips.ts"
+    "pipeline:clips": "node scripts/pipeline/clips.ts",
+    "pipeline:idle": "node scripts/pipeline/idle.ts",
+    "pipeline:assemble": "node scripts/pipeline/assemble.ts",
+    "pipeline:poster": "node scripts/pipeline/poster.ts"
   },
   "dependencies": {
     "@fontsource-variable/jetbrains-mono": "5.3.0",
-    "@fontsource-variable/onest": "5.3.0"
+    "@fontsource-variable/onest": "5.3.0",
+    "three": "0.186.0"
   },
   "devDependencies": {
     "@types/node": "26.4.1",
+    "@types/three": "0.186.0",
     "oxlint": "1.81.0",
     "typescript": "6.0.3",
     "vite": "8.2.2",

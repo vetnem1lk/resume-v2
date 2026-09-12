@@ -21,4 +21,9 @@ export const KEEP_SPEC: readonly string[] = [
 ];
 export const KEEP_18: readonly string[] = [...KEEP_SPEC, 'mouthPucker', 'mouthStretchLeft', 'mouthStretchRight'];
 export const KEEP_24: readonly string[] = [...KEEP_18, 'browOuterUpLeft', 'browOuterUpRight', 'cheekSquintLeft', 'cheekSquintRight', 'noseSneerLeft', 'noseSneerRight'];
-export const TIERS: Record<string, readonly string[]> = { spec15: KEEP_SPEC, keep18: KEEP_18, keep24: KEEP_24, all52: ARKIT_52 };
+// The shipped 24 (founder 2026-09-08: 24 targets, normals off; S4 re-cuts KEEP_24 by the S2 delta
+// ranking and the beat vocabulary): the four biggest shapes outside KEEP_18 - mouthClose 16.9 mm,
+// mouthLeft / mouthRight 11.2 / 11.7, cheekPuff 13.4 - and the outer brows for surprise, in place
+// of the sub-2 mm cheekSquint pair and the noseSneer pair. KEEP_24 stays as S2 measured it.
+export const SHIP_24: readonly string[] = [...KEEP_18, 'mouthClose', 'mouthLeft', 'mouthRight', 'cheekPuff', 'browOuterUpLeft', 'browOuterUpRight'];
+export const TIERS: Record<string, readonly string[]> = { spec15: KEEP_SPEC, keep18: KEEP_18, keep24: KEEP_24, ship24: SHIP_24, all52: ARKIT_52 };

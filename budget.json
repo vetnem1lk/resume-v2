@@ -1,5 +1,6 @@
 {
-  "entry-js": 1024,
+  "entry-js": 2048,
+  "scene-js": 204800,
   "entry-css": 5120,
   "index-html": 7168
 }

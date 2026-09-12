@@ -222,6 +222,8 @@ a {
   height: 32svh;
   margin: 0 -1.25rem;
   overflow: hidden;
+  /* Two absolute layers cross-fade inside; none of it reaches the document's layout or paint. */
+  contain: strict;
   pointer-events: none;
 }
 
@@ -274,14 +276,32 @@ a {
   filter: blur(7px);
 }
 
+/* The poster and the island's canvas are two absolute layers that swap by opacity alone under
+   .stage--live (src/island/poster.ts); the poster stays in the DOM, so it is the largest paint
+   and nothing shifts. In the band the image is the head-and-shoulders crop, held near its top. */
 .stage__poster {
   position: absolute;
   top: 50%;
   left: var(--strip-x);
   width: min(38vw, 460px);
-  min-height: 100svh;
+  height: 100%;
   transform: translate(-50%, -50%);
+  object-fit: cover;
+  object-position: 50% 15%;
+  transition: opacity .45s linear;
 }
+
+.stage__canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  transition: opacity .45s linear;
+}
+
+.stage--live .stage__canvas { opacity: 1; }
+.stage--live .stage__poster { opacity: 0; }
 
 @media (min-width: 1024px) {
   .stage {
@@ -303,6 +323,13 @@ a {
       translateY(calc(-50% - var(--mark-rise, 0) * 100vh))
       rotate(var(--mark-rotate, 0deg))
       scale(var(--mark-scale, 1));
+  }
+
+  /* The column the capture cut (src/island/poster.ts posterCrop): centred on the stage exactly as
+     the crop was, so the first live frame lands on the poster pixel for pixel. */
+  .stage__poster {
+    height: 100svh;
+    object-position: 50% 50%;
   }
 }
 

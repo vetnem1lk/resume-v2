@@ -50,6 +50,20 @@ export function sectionKeys(boxes: readonly SectionBox[], layout: Layout, rule: 
   return sanitizeKeys(boxes.map((b) => ({ id: b.id, u: at(b) / layout.range, y: ANCHOR_Y[b.id] })));
 }
 
+/** The keys the S3 build measured on the reference desktop layout (1440x900, landing rule): the
+ *  path the camera falls back to when the live measurement collapses to fewer than two keys. */
+export const FALLBACK_KEYS: readonly SectionKey[] = [
+  { id: 'top', u: 0, y: 1.7 }, { id: 'profile', u: 0.1507, y: 1.3 }, { id: 'projects', u: 0.2782, y: 1.0 },
+  { id: 'experience', u: 0.4622, y: 0.85 }, { id: 'skills', u: 0.6322, y: 0.48 }, { id: 'education', u: 0.7313, y: 0.25 },
+  { id: 'achievements', u: 0.8304, y: 0.05 }, { id: 'contact', u: 0.9578, y: 0 },
+];
+
+/** Two keys make a path; fewer is a collapsed layout (a short document, a narrow landscape) and
+ *  the reference path stands in, so the island never throws out of a resize. */
+export function usableKeys(measured: readonly SectionKey[]): readonly SectionKey[] {
+  return measured.length >= 2 ? measured : FALLBACK_KEYS;
+}
+
 /** One layout read per resize, never per frame. Assumes no transformed ancestor of the sections
  *  (getBoundingClientRect is transform-sensitive); .doc carries none. */
 export function measureSections(doc: Document = document): { boxes: SectionBox[]; layout: Layout } {

@@ -26,4 +26,5 @@ test('environment overrides win', () => {
   expect(p.ueProject).toBe('D:/p/x.uproject');
   expect(p.ktx).toBe('D:/k/ktx.exe');
   expect(p.gltfModules).toBe('D:/gt/');
+  expect(resolvePaths({ UE_ENGINE: 'X:/UE' }, repo).ueEngine).toBe('X:/UE');
 });

@@ -3,9 +3,10 @@
 // JSON and per-second keyframe bytes, and sums morph VRAM per tier.
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { account, formatBudget, openIO, sizes } from '../../src/pipeline/glb.ts';
+import { account, formatBudget, sizes } from '../../src/pipeline/glb.ts';
 import { TIERS } from '../../src/pipeline/morphs.ts';
 import { MB, morphTextureBytes, naiveBytes, type Slots } from '../../src/pipeline/vram.ts';
+import { openGltf } from './gltf.ts';
 import { PATHS, REPO_ROOT } from './paths.ts';
 import { runBlender } from './run-blender.ts';
 import { runUe } from './run-ue.ts';
@@ -23,7 +24,10 @@ const measureDir = resolve(s2, 'measure');
 mkdirSync(measureDir, { recursive: true });
 const CLIPS = ['Idle', 'Pose_01', 'Pose_02', 'Walk_Fwd', 'Run_Fwd'];
 if (CLIPS.some((c) => !existsSync(resolve(clipsDir, `${c}.fbx`)))) {
-  process.env.S2_CLIPS_OUT = clipsDir.replace(/\\/g, '/');
+  const MESH = '/Game/IdaFaber/Meshes/Girl/SK_MechanicGirl_03';
+  const ROOT = '/Game/IdaFaber/Demo/Animations/Girl/';
+  const ASSETS: Record<string, string> = { Idle: 'AS_UE5_MF_Idle', Pose_01: 'AS_Pose_F_01', Pose_02: 'AS_Pose_F_02', Walk_Fwd: 'AS_UE5_MF_Walk_Fwd', Run_Fwd: 'AS_UE5_MF_Run_Fwd' };
+  process.env.S2_CLIPS_JOB = JSON.stringify({ out: clipsDir.replace(/\\/g, '/'), clips: Object.fromEntries(CLIPS.map((c) => [c, { asset: ROOT + ASSETS[c], mesh: MESH }])) });
   console.log('UE clips:', JSON.stringify(await runUe(resolve(REPO_ROOT, 'scripts/pipeline/ue/export_clips.py'), resolve(s2, 'clips.log'), CLIPS.map((c) => resolve(clipsDir, `${c}.fbx`)))));
 }
 const tiersFile = resolve(s2, 'tiers.json');
@@ -33,7 +37,7 @@ const { sentinel } = await runBlender(resolve(REPO_ROOT, 'scripts/pipeline/blend
 if (!sentinel?.startsWith('S2_MEASURE_OK')) throw new Error(`measure: ${sentinel}`);
 const measure = JSON.parse(readFileSync(resolve(measureDir, 'measure.json'), 'utf8')) as Measure;
 
-const { io, fn } = await openIO(PATHS.gltfModules);
+const { io, fn } = await openGltf(PATHS.gltfModules);
 const md: string[] = [];
 const tiers: Record<string, { disk: number; transfer: number; decoded: number; morph: number; joints: number; headPositionCount: number; headPrims: number; headTargets: number }> = {};
 const geoSize: Record<string, ReturnType<typeof sizes>> = {};

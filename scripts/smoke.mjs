@@ -12,6 +12,7 @@
 // because the front end rewrites them to the RU index; `vite preview` has no such rule
 // and answers from the English document or not at all, so a local assert there would
 // grade the preview server rather than the site. Everything else holds in both places.
+import { ASSET_BASE } from '../src/scene/assets.ts';
 
 const HTML = 'text/html';
 
@@ -30,6 +31,15 @@ const TARGETS = [
   ['/cv/Klimentev_Vladislav_CPP_Developer_RU_ATS.pdf', ['application/pdf']],
   ['/favicon.svg', ['image/svg+xml']],
   ['/robots.txt', ['text/plain']],
+  // The character subset, HEAD only: the body is megabytes and the thing a deploy gets wrong is
+  // the path or the cache header, not the bytes. ASSET_BASE comes from the module the site itself
+  // loads, so a new build directory is smoke-tested the moment the pin moves. One row per kind:
+  // the mesh, the accounting the pipeline wrote beside it, and both poster codecs (the `<picture>`
+  // falls back to WebP, so a missing WebP is invisible on the browser this script runs from).
+  [`${ASSET_BASE}mg.glb`, ['model/gltf-binary'], undefined, 'head'],
+  [`${ASSET_BASE}manifest.json`, ['application/json'], undefined, 'head'],
+  [`${ASSET_BASE}poster/tall-1x.avif`, ['image/avif'], undefined, 'head'],
+  [`${ASSET_BASE}poster/tall-1x.webp`, ['image/webp'], undefined, 'head'],
 ];
 
 const [base, ...flags] = process.argv.slice(2);

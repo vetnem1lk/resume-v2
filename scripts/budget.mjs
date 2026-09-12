@@ -1,15 +1,17 @@
 // Byte gates over dist/. Measures gz9 (zlib level 9, the number the README quotes,
-// not the build log's column) for the entry assets referenced by dist/index.html,
-// proves the entry contains no three.js, that no font was base64-inlined into the
-// stylesheet, that every emitted JS chunk is referenced by the document, that the
+// not the build log's column) for the entry assets referenced by dist/index.html and
+// for the lazily imported scene chunk, proves the entry contains no three.js and that
+// no source outside src/island/ imports it, that no font was base64-inlined into the
+// stylesheet, that every emitted JS chunk is reachable from the entry, that the
 // Russian document was emitted, and that both documents carry the recruiter gate's
 // four elements in markup. Exit code = failures.
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { gzipSync } from 'node:zlib';
 
-const dist = fileURLToPath(new URL('../dist/', import.meta.url));
-const budget = JSON.parse(readFileSync(new URL('../budget.json', import.meta.url), 'utf8'));
+const root = fileURLToPath(new URL('../', import.meta.url));
+const dist = `${root}dist/`;
+const budget = JSON.parse(readFileSync(`${root}budget.json`, 'utf8'));
 const gz9 = (buf) => gzipSync(buf, { level: 9 }).length;
 
 let failures = 0;
@@ -23,7 +25,7 @@ const html = readFileSync(`${dist}index.html`, 'utf8');
 const refs = [...html.matchAll(/(?:src|href)="(\/assets\/[^"]+\.(?:js|css))"/g)].map((m) => m[1]);
 const js = refs.filter((r) => r.endsWith('.js'));
 const css = refs.filter((r) => r.endsWith('.css'));
-check('entry assets referenced', js.length >= 1 && css.length >= 1, `${js.length} js, ${css.length} css`);
+check('entry references one chunk', js.length === 1 && css.length >= 1, `${js.length} js, ${css.length} css`);
 
 const sum = (list) => list.reduce((n, r) => n + gz9(readFileSync(dist + r.slice(1))), 0);
 const entryJs = sum(js);
@@ -44,15 +46,39 @@ for (const r of css) {
   check(`no inlined font in ${r}`, !/data:(?:font|application\/(?:x-)?font)/.test(src));
 }
 
-// Every emitted JS chunk must be reachable from a document: a DEV-only island that survives into
-// dist/ is a build bug, and the checks above only read what the document references.
+// Every emitted JS chunk must be reachable from a document: the entry by <script>, the scene
+// chunk by the entry's import(). three's KTX2Loader makes Vite emit basis_transcoder.js as a
+// hashed ASSET ending in .js that no chunk references (the transcoder worker fetches it).
+const ASSET_JS = /^basis_transcoder-[\w-]+\.js$/;
 const emitted = readdirSync(`${dist}assets`).filter((f) => f.endsWith('.js'));
-const reachable = new Set(js.map((r) => r.split('/').at(-1)));
-check('no orphan js chunk', emitted.every((f) => reachable.has(f)), emitted.join(' '));
+const entryChunks = new Set(js.map((r) => r.split('/').at(-1)));
+const reachable = new Set(entryChunks);
+for (const file of reachable) {
+  const src = readFileSync(`${dist}assets/${file}`, 'utf8');
+  for (const m of src.matchAll(/(?:from|import)\s*\(?\s*["'`]\.\/([\w.-]+\.js)["'`]/g)) reachable.add(m[1]);
+}
+const orphans = emitted.filter((f) => !reachable.has(f) && !ASSET_JS.test(f));
+check('no orphan js chunk', orphans.length === 0, orphans.join(' ') || emitted.join(' '));
+
+// The scene is whatever the entry imports lazily: at least one chunk (an empty set means the
+// island was hoisted into an eager script or dropped), all of it within its own budget.
+const scene = [...reachable].filter((f) => !entryChunks.has(f));
+const sceneJs = scene.reduce((n, f) => n + gz9(readFileSync(`${dist}assets/${f}`)), 0);
+check('scene chunk emitted', scene.length >= 1, scene.join(' ') || 'none');
+check('scene-js gz9', scene.length >= 1 && sceneJs <= budget['scene-js'], `${sceneJs} <= ${budget['scene-js']} B`);
+
+// Source purity: three.js is imported under src/island/ and nowhere else, so the pure rig stays
+// testable under Node and the entry cannot grow a three import by accident.
+const sources = (dir) => readdirSync(dir, { recursive: true, withFileTypes: true })
+  .filter((e) => e.isFile() && e.name.endsWith('.ts'))
+  .map((e) => `${e.parentPath ?? e.path}/${e.name}`.replaceAll('\\', '/'));
+const leaks = sources(`${root}src`).filter((f) => !f.includes('/src/island/') && /from\s+['"]three(?:\/|['"])/.test(readFileSync(f, 'utf8')));
+check('three imported only under src/island', leaks.length === 0, leaks.map((f) => f.slice(root.length)).join(' '));
 
 const ru = `${dist}ru/index.html`;
 const ruHtml = existsSync(ru) ? readFileSync(ru, 'utf8') : '';
 check('ru document emitted', ruHtml.includes('<html lang="ru"'));
+check('ru-html gz9', gz9(ruHtml) <= budget['index-html'], `${gz9(ruHtml)} <= ${budget['index-html']} B`);
 
 // The em-dash is banned in the shipped bytes (plan gate); the en dash stays, it is the
 // separator the plan mandates for date ranges.

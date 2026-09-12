@@ -1,5 +1,6 @@
 // Run one Blender headless job with the flags that make failures visible, and hand back the
-// job's sentinel line (Blender's own banner and "Blender quit" also land on stdout).
+// job's sentinel line - `S<slice>_<JOB>_OK` (Blender's own banner and "Blender quit" also land
+// on stdout, and every job prints its result line last).
 import { spawn } from 'node:child_process';
 import { PATHS } from './paths.ts';
 
@@ -16,7 +17,7 @@ export function runBlender(script: string, args: string[], opts: { blend?: strin
     child.on('error', reject);
     child.on('close', (code) => {
       if (code !== 0) return reject(new Error(`blender exited ${code}\n${stderr.slice(-2000)}`));
-      const sentinel = stdout.split(/\r?\n/).findLast((l) => l.startsWith('S2_')) ?? null;
+      const sentinel = stdout.split(/\r?\n/).findLast((l) => /^S\d_/.test(l)) ?? null;
       resolvePromise({ sentinel, stdout });
     });
   });

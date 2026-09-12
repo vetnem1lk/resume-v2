@@ -6,6 +6,7 @@ import type { Achievement, Content, Job, Link, Project, SectionId } from '../con
 import { SECTION_IDS } from '../content/types.ts';
 import type { IconId } from './icons.ts';
 import { renderSprite } from './icons.ts';
+import { POSTER } from '../scene/assets.ts';
 import { ANCHOR_Y } from '../scene/sections.ts';
 
 export function escape(s: string): string {
@@ -55,8 +56,10 @@ function strip(c: Content): string {
 </header>`;
 }
 
-// The scene layer. Static in S1: the letterform, the contour field, the light strip and
-// the reserved poster box the character will later occupy. aria-hidden: pure decoration.
+// The scene layer: the letterform, the contour field, the light strip and the poster the
+// character stands in until the island's canvas cross-fades over it (doc.css); below 1024px
+// the picture's band pair is a head-and-shoulders crop. The poster is the largest paint, so
+// it is static markup with a high fetch priority and never lazy. aria-hidden: pure decoration.
 // It sits after the header block inside <main>, not before it: on a phone it is a poster
 // in flow, and ahead of the document it filled the whole first screen with decoration,
 // leaving the name and role to the strip alone. Fixed on wide screens, where document
@@ -81,7 +84,13 @@ function stage(): string {
   <svg class="stage__contour" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice"><filter id="contour" x="0" y="0" width="100%" height="100%"><feTurbulence type="fractalNoise" baseFrequency="0.0022" numOctaves="3" seed="13" /><feColorMatrix values="0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 9 -4" /><feComponentTransfer><feFuncA type="discrete" tableValues="0 1 0 1 0 1 0 1 0 1 0 1 0 1 0" /></feComponentTransfer><feMorphology operator="erode" radius="0.6" /></filter><rect width="1600" height="900" filter="url(#contour)" /></svg>
   <svg class="stage__letterform" viewBox="0 -396.5 784 396.5"><defs><pattern id="hatch-vk" width="10" height="10" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="10" height="4" fill="currentColor" /></pattern></defs><path d="M142.24 0L0 -396.48L110.32 -396.48L208.32 -85.12L302.4 -396.48L412.16 -396.48L271.04 0ZM427.28 0L427.28 -396.48L528.64 -396.48L528.64 -244.16L582.96 -244.16L668.64 -396.48L784 -396.48L666.4 -206.64L782.88 0L665.28 0L585.2 -150.64L528.64 -150.64L528.64 0Z" /></svg>
   <div class="stage__light"></div>
-  <div class="stage__poster"></div>
+  <picture>
+    <source media="(max-width: 1023px)" type="image/avif" srcset="${POSTER.dir}band-1x.avif 1x, ${POSTER.dir}band-2x.avif 2x">
+    <source media="(max-width: 1023px)" type="image/webp" srcset="${POSTER.dir}band-1x.webp 1x, ${POSTER.dir}band-2x.webp 2x">
+    <source type="image/avif" srcset="${POSTER.dir}tall-1x.avif 1x, ${POSTER.dir}tall-2x.avif 2x">
+    <source type="image/webp" srcset="${POSTER.dir}tall-1x.webp 1x, ${POSTER.dir}tall-2x.webp 2x">
+    <img class="stage__poster" src="${POSTER.dir}tall-1x.webp" width="${POSTER.width}" height="${POSTER.height}" alt="" decoding="async" fetchpriority="high">
+  </picture>
 </div>`;
 }
 

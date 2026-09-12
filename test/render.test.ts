@@ -90,6 +90,12 @@ describe.each([en, ru])('render $lang', (c) => {
     expect(body).toContain('class="stage__contour"');
     expect(body).toContain('class="stage__light"');
   });
+  test('the poster is a static art-directed picture that the island never hides', () => {
+    expect(body).toMatch(/<picture>[\s\S]*<source media="\(max-width: ?1023px\)" type="image\/avif" srcset="[^"]*band-1x\.avif 1x, [^"]*band-2x\.avif 2x">/);
+    expect(body).toMatch(/<source type="image\/avif" srcset="[^"]*tall-1x\.avif 1x, [^"]*tall-2x\.avif 2x">/);
+    expect(body).toMatch(/<img class="stage__poster" src="[^"]*tall-1x\.webp" width="460" height="1300" alt="" decoding="async" fetchpriority="high">/);
+    expect(body).not.toMatch(/stage__poster[^>]*loading=/);
+  });
 });
 
 test('escape', () => {

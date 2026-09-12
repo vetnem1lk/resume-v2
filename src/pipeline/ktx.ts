@@ -8,20 +8,26 @@ const FORMAT: Record<1 | 3 | 4, { srgb: string; unorm: string }> = {
   3: { srgb: 'R8G8B8_SRGB', unorm: 'R8G8B8_UNORM' },
   4: { srgb: 'R8G8B8A8_SRGB', unorm: 'R8G8B8A8_UNORM' },
 };
-const ETC1S = ['--encode', 'basis-lz', '--qlevel', '255', '--clevel', '1'];
-const UASTC = ['--encode', 'uastc', '--uastc-quality', '4'];
+export type Recipe = 'etc1s' | 'uastc' | 'uastc_rdo' | 'uastc_rdo4';
 
-export function ktxArgs(cls: TexClass, channels: 1 | 3 | 4): string[] {
-  const f = FORMAT[channels];
-  const linear = ['--assign-tf', 'linear', '--assign-primaries', 'none'];
-  switch (cls) {
-    case 'bc':
-    case 'bca': return ['--format', f.srgb, '--assign-tf', 'srgb', '--assign-primaries', 'bt709', ...ETC1S, '--generate-mipmap'];
-    case 'n': return ['--format', f.unorm, ...linear, ...UASTC, '--zstd', '18', '--generate-mipmap'];
-    case 'orm_u': return ['--format', f.unorm, ...linear, ...UASTC, '--uastc-rdo', '--uastc-rdo-l', '4', '--zstd', '18', '--generate-mipmap'];
-    case 'orm':
-    case 'mask': return ['--format', f.unorm, ...linear, ...ETC1S, '--generate-mipmap'];
-  }
+const SRGB = ['--assign-tf', 'srgb', '--assign-primaries', 'bt709'];
+const LINEAR = ['--assign-tf', 'linear', '--assign-primaries', 'none'];
+// `--zstd` is rejected beside basis-lz; the RDO lambdas are the two the matrix measured (0.5 on
+// normals, 4 on an ORM: clothes_orm 30.2 -> 37.7 dB for +0.5 MB).
+const ENCODE: Readonly<Record<Recipe, readonly string[]>> = {
+  etc1s: ['--encode', 'basis-lz', '--qlevel', '255', '--clevel', '1'],
+  uastc: ['--encode', 'uastc', '--uastc-quality', '4', '--zstd', '18'],
+  uastc_rdo: ['--encode', 'uastc', '--uastc-quality', '4', '--uastc-rdo', '--uastc-rdo-l', '0.5', '--zstd', '18'],
+  uastc_rdo4: ['--encode', 'uastc', '--uastc-quality', '4', '--uastc-rdo', '--uastc-rdo-l', '4', '--zstd', '18'],
+};
+const DEFAULT_RECIPE: Readonly<Record<TexClass, Recipe>> = { bc: 'etc1s', bca: 'etc1s', n: 'uastc', orm: 'etc1s', orm_u: 'uastc_rdo4', mask: 'etc1s' };
+// The binary's default mip wrap is WRAP (the help text says clamp): every S2 chain bled the atlas
+// edge into its small mips. One resampler end to end: sharp resizes with lanczos3, so do the mips.
+const MIPS = ['--generate-mipmap', '--mipmap-filter', 'lanczos3', '--mipmap-wrap', 'clamp'];
+
+export function ktxArgs(cls: TexClass, channels: 1 | 3 | 4, recipe: Recipe = DEFAULT_RECIPE[cls]): string[] {
+  const colour = cls === 'bc' || cls === 'bca';
+  return ['--format', colour ? FORMAT[channels].srgb : FORMAT[channels].unorm, ...(colour ? SRGB : LINEAR), ...ENCODE[recipe], ...MIPS];
 }
 
 export function validateArgs(file: string): string[] {
@@ -54,7 +60,7 @@ export const TEXTURE_PLAN: TexPlan[] = [
   { key: 'cornea_bca', cls: 'bca', sources: [B + 'T_EYES_Cornea_01'], dims: [256, 512] },
 ];
 
-// Tier 1 = the loader waits for it (spec section 4.8). Tier 2 adds head_bc@2048 as a sidecar.
+// The size per key the loader waits for (spec section 4.8); TIER1 below turns it into picks.
 export const TIER1_PICK: Record<string, number> = {
   head_bc: 1024, head_n: 512, head_orm: 512, head_orm_u: 1024,
   body_bc: 1024, body_n: 512, body_orm: 512,
@@ -63,3 +69,50 @@ export const TIER1_PICK: Record<string, number> = {
   hair_bca: 1024, hair_n: 512, lashes_bca: 512, eyes_bc: 512, cornea_bca: 256,
 };
 export const TIER1_EXCLUDE = new Set(['head_orm_u']);   // quality alternative, priced but not summed
+
+const classOf = (key: string): TexClass => {
+  const plan = TEXTURE_PLAN.find((p) => p.key === key);
+  if (plan === undefined) throw new Error(`no texture plan for ${key}`);
+  return plan.cls;
+};
+
+export interface TexPick { readonly key: string; readonly dim: number; readonly recipe: Recipe }
+
+/** Tier 1 = the loader waits for it: the S2 pick minus the priced-only alternative, re-encoded
+ *  with the corrected mip flags. */
+export const TIER1: readonly TexPick[] = Object.entries(TIER1_PICK)
+  .filter(([key]) => !TIER1_EXCLUDE.has(key))
+  .map(([key, dim]) => ({ key, dim, recipe: DEFAULT_RECIPE[classOf(key)] }));
+
+/** Tier 2 = the desktop quality set (founder Q6): 2K colour on the three maps that fill the frame,
+ *  and the one measurably wrong codec fixed. Normals stay where S2 put them. */
+export const TIER2: readonly TexPick[] = [
+  { key: 'head_bc', dim: 2048, recipe: 'etc1s' },
+  { key: 'clothes_bc', dim: 2048, recipe: 'etc1s' },
+  { key: 'hair_bca', dim: 2048, recipe: 'etc1s' },
+  { key: 'clothes_orm', dim: 1024, recipe: 'uastc_rdo4' },
+];
+
+/** `<key>@<dim>.ktx2` for the class's default recipe, `<key>@<dim>u.ktx2` for an upgraded codec
+ *  on the same key and size, so the two never collide in one directory. */
+export function pickFile(pick: TexPick): string {
+  return `${pick.key}@${pick.dim}${pick.recipe === DEFAULT_RECIPE[classOf(pick.key)] ? '' : 'u'}.ktx2`;
+}
+
+/** GPU bytes of one BC7 mip chain: every level pads to whole 4x4 blocks of 16 B and never costs
+ *  less than one block. Both ETC1S and UASTC transcode to BC7 on a desktop GPU. */
+export function bc7ChainBytes(dim: number): number {
+  let bytes = 0;
+  for (let d = dim; d >= 1; d = Math.floor(d / 2)) bytes += Math.max(16, Math.ceil(d / 4) ** 2 * 16);
+  return bytes;
+}
+
+export function textureVramBytes(picks: readonly TexPick[]): number {
+  return picks.reduce((n, p) => n + bc7ChainBytes(p.dim), 0);
+}
+
+export interface ManifestTexture { key: string; dim: number; recipe: Recipe; file: string; bytes: number; gpuBytes: number }
+
+export function manifestRow(pick: TexPick, file: string, bytes: number): ManifestTexture {
+  return { key: pick.key, dim: pick.dim, recipe: pick.recipe, file, bytes, gpuBytes: bc7ChainBytes(pick.dim) };
+}
