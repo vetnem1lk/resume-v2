@@ -5,7 +5,7 @@ import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { copyFileSync, existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { account, openIO, sizes } from '../../src/pipeline/glb.ts';
+import { account, sizes } from '../../src/pipeline/glb.ts';
 import { TIER1, TIER1_PICK, TIER2, pickFile } from '../../src/pipeline/ktx.ts';
 import { LOOK } from '../../src/pipeline/look.ts';
 import { TIERS } from '../../src/pipeline/morphs.ts';
@@ -42,9 +42,11 @@ const ALLOWED = new Set(['VALUE_NOT_IN_LIST', 'IMAGE_UNRECOGNIZED_FORMAT', 'UNSU
 /** 4.4.2 has no `--format json`; csv is its only machine-readable table. */
 function validate(file: string, label: string): void {
   let csv: string;
+  let threw: unknown;
   try {
     csv = execFileSync('node', [gltfTransform, 'validate', file, '--format', 'csv'], { encoding: 'utf8' });
   } catch (err) {
+    threw = err;
     csv = String((err as { stdout?: string }).stdout ?? '');   // the CLI prints the table, then exits non-zero on an error
   }
   // code,message,severity,pointer - the message is quoted and may carry commas; the pointer never does.
@@ -52,6 +54,9 @@ function validate(file: string, label: string): void {
     const m = /^([A-Z_0-9]+),.*,(\d+),[^,]*$/.exec(line);
     return m === null ? [] : [{ code: m[1] ?? '', severity: Number(m[2]) }];
   });
+  // A failed run that produced no table (missing file, renamed flag, a crash) is a failed run, not
+  // a clean file: a green validation needs the table as its evidence.
+  if (threw !== undefined && issues.length === 0) throw threw;
   const counts = new Map<string, number>();
   for (const issue of issues) counts.set(issue.code, (counts.get(issue.code) ?? 0) + 1);
   console.log(`validate ${label}: ${[...counts].map(([code, n]) => `${n}x${code}`).join(' ') || 'no issues'}`);
@@ -114,8 +119,7 @@ validate(resolve(out, 'mg.glb'), build);
 
 // 5. The accounting and the block to pin. The accounting stays in the work directory: the build
 // directory is exactly what the manifest enumerates and the host serves.
-const { io: accountIo, fn: accountFn } = await openIO(PATHS.gltfModules);
-const acc = account(await accountIo.read(resolve(out, 'mg.glb')), sizes(resolve(out, 'mg.glb')), accountFn);
+const acc = account(await io.read(resolve(out, 'mg.glb')), sizes(resolve(out, 'mg.glb')), fn);
 writeFileSync(resolve(workDir, `${build}-accounting.json`), JSON.stringify(acc, null, 1));
 console.log(`\nbuild ${build}: disk ${m.files[0]?.disk} B, wire ${m.files[0]?.wire} B, textures ${acc.totals.tex} B, tris ${acc.meshes.reduce((n, r) => n + r.tris, 0)}`);
 console.log(`\n// src/scene/assets.ts\nexport const ASSET_BASE = '/g2/v2/${build}/';\nexport const GLB = { url: \`\${ASSET_BASE}mg.glb\`, bytes: ${glb.byteLength} } as const;`);

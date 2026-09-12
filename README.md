@@ -183,7 +183,8 @@ resume-v2/
     glb.test.ts              # the byte budget: the accounting arithmetic, the GLB chunk/transfer sizes, the table
     fixtures/inventory-mini.json  # two hand-written FBX reports, a combine plus a module, that inventory.test.ts
                              # pins the summary arithmetic against
-  tools/
+  tools/                     # dev-server pages, never bundled and outside tsconfig: they may resolve bare `three`
+                             # through node_modules; "three only under src/island/" is a rule about the bundle.
     tier1-proof.html         # render proof of the assembled character: plays the Idle off the asset host and reads
                              # draw calls, triangles, skins and morph targets back into window.__proof
     face-proof.html          # bare three.js viewer: plays the proof GLB and asserts the morph weights move;
